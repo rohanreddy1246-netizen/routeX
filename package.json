@@ -1,0 +1,24 @@
+{
+  "name": "bus-ticket-booking-system",
+  "version": "1.0.0",
+  "description": "Real-time bus ticket booking system with user, admin, and driver roles",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "bus",
+    "ticket",
+    "booking",
+    "realtime"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/admin", "dest": "/admin.html" },
+    { "src": "/driver", "dest": "/driver.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
+}

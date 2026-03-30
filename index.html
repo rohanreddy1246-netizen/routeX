@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Ticket Booking System</title>
+    <meta name="description" content="Book bus tickets online — choose your route, pick a seat, pay securely.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- ======================================================
+         UNIFIED LOGIN/REGISTRATION
+    ====================================================== -->
+        <div id="login-section" class="login-container">
+            <div class="login-card">
+                <!-- Logo removed -->
+                <h2>RouteX Booking</h2>
+
+                <!-- Toggle Buttons -->
+                <div class="login-tabs">
+                    <button class="login-tab active" id="login-tab-btn" onclick="toggleAuthMode('login')">🔐 Sign
+                        In</button>
+                    <button class="login-tab" id="register-tab-btn" onclick="toggleAuthMode('register')">📝
+                        Register</button>
+                </div>
+
+                <!-- LOGIN FORM -->
+                <div id="login-panel">
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label for="login-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="login-email" placeholder="your@email.com"
+                                required autocomplete="username">
+                        </div>
+                        <div class="mb-3">
+                            <label for="login-password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="login-password" placeholder="Password"
+                                required autocomplete="current-password">
+                        </div>
+                        <div id="login-error" class="field-error mb-2"></div>
+                        <button type="submit" class="btn btn-primary w-100">🔐 Sign In</button>
+                    </form>
+                    
+                </div>
+
+                <!-- REGISTRATION FORM -->
+                <div id="register-panel" class="d-none">
+                    <form id="register-form">
+                        <div class="mb-3">
+                            <label class="form-label">Register as:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-outline-primary flex-fill" data-role="user"
+                                    id="role-user" onclick="selectRegistrationRole('user')">👤 User</button>
+                                <button type="button" class="btn btn-outline-success flex-fill" data-role="driver"
+                                    id="role-driver" onclick="selectRegistrationRole('driver')">🚗 Driver</button>
+                            </div>
+                            <div id="selected-role"
+                                style="text-align: center; margin-top: 8px; font-weight: 600; color: #667eea;"></div>
+                        </div>
+
+                        
+
+                        
+
+                        <div class="mb-3">
+                            <label for="reg-name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="reg-name" placeholder="Your full name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reg-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="reg-email" placeholder="your@email.com"
+                                required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reg-phone" class="form-label">Phone (10 digits)</label>
+                            <input type="tel" class="form-control" id="reg-phone" placeholder="9876543210"
+                                maxlength="10" inputmode="numeric" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reg-password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="reg-password" placeholder="Password"
+                                required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="reg-password-confirm" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="reg-password-confirm"
+                                placeholder="Confirm Password" required>
+                        </div>
+
+                        <div id="driver-fields" style="display: none;">
+                            <div class="mb-3">
+                                <label for="driver-access-code" class="form-label">Driver Access Code <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="driver-access-code" placeholder="Provided by admin" required>
+                                <div class="form-text">You must have an authorized access code to register as a driver.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="license-number" class="form-label">Driving License Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="license-number" placeholder="License number"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div id="register-error" class="field-error mb-2"></div>
+                        <button type="submit" class="btn btn-success w-100">📝 Register</button>
+                    </form>
+                    <div id="register-success-message" class="alert alert-success d-none mb-3">✅ Registration
+                        successful! Logging you in...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================
+         PROCESSING PAYMENT PAGE
+    ====================================================== -->
+        <div id="processing-section" class="d-none processing-overlay">
+            <div class="processing-card">
+                <div class="processing-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring"></div>
+                </div>
+                <h3>Processing Payment</h3>
+                <p id="processing-status-text">Verifying card details…</p>
+                <div class="processing-steps">
+                    <div class="proc-step" id="proc-step-1">🔐 Encrypting transaction</div>
+                    <div class="proc-step" id="proc-step-2">💳 Charging card</div>
+                    <div class="proc-step" id="proc-step-3">🎟 Generating ticket</div>
+                    <div class="proc-step" id="proc-step-4">✅ Booking confirmed!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================
+         USER BOOKING SECTION
+    ====================================================== -->
+        <div id="user-section" class="d-none">
+
+            <!-- Navbar -->
+            <nav class="navbar navbar-dark sticky-top">
+                <div class="container-fluid px-3">
+                    <span class="navbar-brand d-flex align-items-center gap-2">
+                        <img src="logo RouteX.png" alt="RouteX Logo" style="height: 32px; object-fit: contain;">
+                        RouteX
+                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-white small d-none d-md-inline" id="user-greeting"></span>
+                        <!-- User menu button -->
+                        <div class="user-menu-wrapper">
+                            <button class="user-avatar-btn" id="user-menu-btn" onclick="toggleUserMenu()">
+                                <span>👤</span>
+                                <span class="d-none d-md-inline" id="user-menu-name">My Account</span>
+                                <span class="menu-caret">▾</span>
+                            </button>
+                            <div class="user-menu-dropdown d-none" id="user-menu-dropdown">
+                                <a class="user-menu-item" onclick="showPage('profile')">👤 My Profile</a>
+                                <a class="user-menu-item" onclick="showPage('my-bookings')">🎫 My Bookings</a>
+                                <div class="user-menu-divider"></div>
+                                <a class="user-menu-item user-menu-item-danger" id="logout">⏏ Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- ---- HOME / BOOKING PAGE ---- -->
+            <div id="page-booking" class="container booking-container">
+
+                <!-- Step Indicators -->
+                <div class="step-indicators">
+                    <div class="booking-step-indicator active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">Details</div>
+                    </div>
+                    <div class="step-divider"></div>
+                    <div class="booking-step-indicator" data-step="2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">Choose Bus</div>
+                    </div>
+                    <div class="step-divider"></div>
+                    <div class="booking-step-indicator" data-step="3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Seats</div>
+                    </div>
+                </div>
+
+                <!-- STEP 1: Passenger Details -->
+                <div id="step-passenger" class="booking-step-panel">
+                    <h4 class="step-title">👤 Passenger Details</h4>
+                    <form id="booking-form" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" placeholder="Full name" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="age" class="form-label">Age</label>
+                                <input type="number" class="form-control" id="age" min="1" max="120" placeholder="Age"
+                                    required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-control" id="gender" required>
+                                    <option value="">Select</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="tel" class="form-control" id="phone" placeholder="10-digit mobile"
+                                    maxlength="10" minlength="10" pattern="[0-9]{10}" inputmode="numeric" required>
+                                <div class="form-text">Numbers only, exactly 10 digits</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" placeholder="name@example.com"
+                                    required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="pickup" class="form-label">PICK-UP LOCATION</label>
+                                <select class="form-control" id="pickup" required>
+                                    <option value="">Select Destination</option>
+                                    <optgroup label="Telangana">
+                                        <option>Hyderabad</option>
+                                        <option>Warangal</option>
+                                        <option>Karimnagar</option>
+                                        <option>Nizamabad</option>
+                                        <option>Adilabad</option>
+                                        <option>Mahabubnagar</option>
+                                        <option>Khammam</option>
+                                        <option>Nalgonda</option>
+                                    </optgroup>
+                                    <optgroup label="Andhra Pradesh">
+                                        <option>Vijayawada</option>
+                                        <option>Visakhapatnam</option>
+                                        <option>Guntur</option>
+                                        <option>Tirupati</option>
+                                        <option>Kurnool</option>
+                                        <option>Anantapur</option>
+                                        <option>Nellore</option>
+                                        <option>Ongole</option>
+                                        <option>Chirala</option>
+                                        <option>Tenali</option>
+                                    </optgroup>
+                                    <optgroup label="Karnataka & Tamil Nadu">
+                                        <option>Bengaluru</option>
+                                        <option>Mysuru</option>
+                                        <option>Chennai</option>
+                                        <option>Pondicherry</option>
+                                    </optgroup>
+                                    <optgroup label="Maharashtra & North India">
+                                        <option>Mumbai</option>
+                                        <option>Pune</option>
+                                        <option>Nagpur</option>
+                                        <option>Nashik</option>
+                                        <option>Aurangabad</option>
+                                        <option>Nanded</option>
+                                        <option>Delhi</option>
+                                        <option>Jaipur</option>
+                                        <option>Kolkata</option>
+                                        <option>Varanasi</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="drop" class="form-label">DROP LOCATION</label>
+                                <select class="form-control" id="drop" required>
+                                    <option value="">Select Origin</option>
+                                    <optgroup label="Telangana">
+                                        <option>Hyderabad</option>
+                                        <option>Warangal</option>
+                                        <option>Karimnagar</option>
+                                        <option>Nizamabad</option>
+                                        <option>Adilabad</option>
+                                        <option>Mahabubnagar</option>
+                                        <option>Khammam</option>
+                                        <option>Nalgonda</option>
+                                    </optgroup>
+                                    <optgroup label="Andhra Pradesh">
+                                        <option>Vijayawada</option>
+                                        <option>Visakhapatnam</option>
+                                        <option>Guntur</option>
+                                        <option>Tirupati</option>
+                                        <option>Kurnool</option>
+                                        <option>Anantapur</option>
+                                        <option>Nellore</option>
+                                        <option>Ongole</option>
+                                        <option>Chirala</option>
+                                        <option>Tenali</option>
+                                    </optgroup>
+                                    <optgroup label="Karnataka & Tamil Nadu">
+                                        <option>Bengaluru</option>
+                                        <option>Mysuru</option>
+                                        <option>Chennai</option>
+                                        <option>Pondicherry</option>
+                                    </optgroup>
+                                    <optgroup label="Maharashtra & North India">
+                                        <option>Mumbai</option>
+                                        <option>Pune</option>
+                                        <option>Nagpur</option>
+                                        <option>Nashik</option>
+                                        <option>Aurangabad</option>
+                                        <option>Nanded</option>
+                                        <option>Delhi</option>
+                                        <option>Jaipur</option>
+                                        <option>Kolkata</option>
+                                        <option>Varanasi</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                             <div class="col-md-6">
+                                <label for="travelDate" class="form-label">Travel Date</label>
+                                <input type="date" class="form-control" id="travelDate" required>
+                                <script>document.getElementById('travelDate').min = new Date().toISOString().split('T')[0];</script>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button type="button" id="find-buses" class="btn btn-primary btn-lg">
+                                🔍 Find Buses
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- STEP 2: Bus Selection -->
+                <div id="step-bus-selection" class="booking-step-panel d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="step-title mb-0">🚌 Choose Your Bus</h4>
+                        <button id="back-to-passenger" class="btn btn-outline-secondary btn-sm">← Back</button>
+                    </div>
+                    <p id="bus-selection-subtitle" class="text-muted mb-3">
+                        Select a bus for your journey.
+                    </p>
+                    <div id="bus-cards-container" class="bus-cards-grid"></div>
+                </div>
+
+                <!-- STEP 3: Seat Selection -->
+                <div id="step-seat-selection" class="booking-step-panel d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h4 class="step-title mb-0">💺 Select Seats</h4>
+                        <button id="back-to-bus-selection" class="btn btn-outline-secondary btn-sm">← Back</button>
+                    </div>
+                    <div class="selected-bus-banner mb-3">
+                        <span>🚌</span>
+                        <span id="selected-bus-info">No bus selected</span>
+                    </div>
+                    <div id="seat-layout" class="mb-3"></div>
+                    <div class="selected-seats-display mb-3">
+                        <strong>Selected Seats:</strong>
+                        <span id="selected-seats-text">None</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-lg" id="proceed-to-payment" disabled>
+                        💳 Proceed to Payment
+                    </button>
+                </div>
+            </div>
+
+            <!-- ---- PROFILE PAGE ---- -->
+            <div id="page-profile" class="d-none container booking-container">
+                <div class="booking-step-panel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="step-title mb-0">👤 My Profile</h4>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showPage('booking')">← Back</button>
+                    </div>
+                    <div class="profile-avatar-section">
+                        <div class="profile-avatar">👤</div>
+                        <div>
+                            <h5 id="profile-display-name" class="mb-0">—</h5>
+                            <p class="text-muted mb-0" id="profile-display-email">—</p>
+                        </div>
+                    </div>
+                    <div class="profile-details mt-4">
+                        <div class="profile-row"><span class="profile-label">Full Name</span><span class="profile-value"
+                                id="prof-name">—</span></div>
+                        <div class="profile-row"><span class="profile-label">Age</span><span class="profile-value"
+                                id="prof-age">—</span></div>
+                        <div class="profile-row"><span class="profile-label">Gender</span><span class="profile-value"
+                                id="prof-gender">—</span></div>
+                        <div class="profile-row"><span class="profile-label">Phone</span><span class="profile-value"
+                                id="prof-phone">—</span></div>
+                        <div class="profile-row"><span class="profile-label">Email</span><span class="profile-value"
+                                id="prof-email">—</span></div>
+                    </div>
+                    <div class="text-muted small mt-3">
+                        ℹ️ Profile details are pulled from your most recent booking.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ---- MY BOOKINGS PAGE ---- -->
+            <div id="page-my-bookings" class="d-none container booking-container">
+                <div class="booking-step-panel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="step-title mb-0">🎫 My Bookings</h4>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="showPage('booking')">← Back</button>
+                    </div>
+                    <div id="my-bookings-list"></div>
+                </div>
+            </div>
+
+        </div><!-- /user-section -->
+
+        <!-- ======================================================
+         PAYMENT MODAL
+    ====================================================== -->
+        <div class="modal fade" id="payment-modal" tabindex="-1" aria-labelledby="paymentModalLabel">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="paymentModalLabel">💳 Secure Payment</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="payment-summary mb-3">
+                            <span>Ticket Fare:</span>
+                            <strong id="ticket-price-display">₹500</strong>
+                        </div>
+                        <div id="payment-errors"></div>
+                        <form id="payment-form" novalidate>
+                            <div class="mb-3">
+                                <label for="cardNumber" class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="cardNumber"
+                                    placeholder="1234 5678 9012 3456" required maxlength="19" inputmode="numeric"
+                                    autocomplete="cc-number">
+                                <div class="form-text">16 digits — auto-formats as you type</div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label for="expiry" class="form-label">Expiry (MM/YY)</label>
+                                    <input type="text" class="form-control" id="expiry" placeholder="MM/YY" required
+                                        maxlength="5" inputmode="numeric" autocomplete="cc-exp">
+                                </div>
+                                <div class="col-6">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" placeholder="3–4 digits" required
+                                        maxlength="4" inputmode="numeric" autocomplete="cc-csc">
+                                    <div class="form-text" id="cvv-help">3 digits (Visa/MC) | 4 digits (Amex)</div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100 btn-lg" id="pay-btn">
+                                💳 Pay &amp; Book
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================
+         TICKET PAGE
+    ====================================================== -->
+        <div id="ticket-section" class="d-none">
+            <div class="container ticket-outer">
+                <div class="ticket-card">
+                    <div class="ticket-header">
+                        <div class="ticket-header-icon">🎟</div>
+                        <h2>Booking Confirmed!</h2>
+                        <p>Your ticket has been generated successfully</p>
+                    </div>
+                    <div class="ticket-body">
+                        <div class="ticket-details">
+                            <div class="detail-row"><span class="detail-label">Ticket ID</span><span
+                                    class="detail-value" id="ticket-id"></span></div>
+                            <div class="detail-row"><span class="detail-label">Passenger</span><span
+                                    class="detail-value" id="ticket-name"></span></div>
+                            <div class="detail-row"><span class="detail-label">Age / Gender</span><span
+                                    class="detail-value" id="ticket-age-gender"></span></div>
+                            <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-value"
+                                    id="ticket-phone"></span></div>
+                            <div class="detail-row"><span class="detail-label">Email</span><span class="detail-value"
+                                    id="ticket-email"></span></div>
+                            <div class="detail-row"><span class="detail-label">Bus Number</span><span
+                                    class="detail-value" id="ticket-bus"></span></div>
+                            <div class="detail-row"><span class="detail-label">Seats</span><span class="detail-value"
+                                    id="ticket-seats"></span></div>
+                            <div class="detail-row"><span class="detail-label">Route</span><span class="detail-value"
+                                    id="ticket-route"></span></div>
+                            <div class="detail-row"><span class="detail-label">Date</span><span class="detail-value"
+                                    id="ticket-date"></span></div>
+                            <div class="detail-row"><span class="detail-label">Boarding Time</span><span
+                                    class="detail-value" id="ticket-boarding-time"></span></div>
+                            <div class="detail-row"><span class="detail-label">Fare Paid</span><span
+                                    class="detail-value" id="ticket-fare"></span></div>
+                            <div class="detail-row"><span class="detail-label">Booked On</span><span
+                                    class="detail-value" id="ticket-booked-on"></span></div>
+                        </div>
+                        <div class="qr-section">
+                            <h5>Scan to Board</h5>
+                            <div id="qr-code" class="qr-container"></div>
+                            <p class="text-muted small mt-2">Show this QR at the boarding gate</p>
+                        </div>
+                    </div>
+                    <div class="ticket-footer">
+                        <button class="btn btn-primary" id="download-pdf-btn">📥 Download PDF</button>
+                        <button class="btn btn-info text-white" onclick="window.print()">🖨 Print</button>
+                        <button class="btn btn-secondary" id="new-booking-btn">➕ New Booking</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /app -->
+
+    <!-- Registration Success Modal -->
+    <div class="modal fade" id="regSuccessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 12px;">
+                <div class="modal-body text-center p-5">
+                    <div style="font-size: 4rem; color: #28a745; margin-bottom: 20px;">✅</div>
+                    <h3 style="margin-bottom: 15px;">Registration Successful!</h3>
+                    <p style="color: #a0aec0; margin-bottom: 0;">Your account has been created. Logging you in automatically...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Common Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title" id="errorModalTitle">⚠️ Error</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">❌</div>
+                    <p id="errorModalMessage" class="fs-5 text-dark"></p>
+                    <button type="button" class="btn btn-danger px-4 py-2 mt-3" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chatbot Helpdesk -->
+    <div id="chatbot-container" class="d-none">
+        <div class="chatbot-toggle" id="chatbot-toggle">
+            <span>💬</span>
+        </div>
+        <div class="chatbot-window hidden" id="chatbot-window">
+            <div class="chatbot-header">
+                <h5><span>🤖</span> AI Helpdesk</h5>
+                <span class="chatbot-close" id="chatbot-close">✕</span>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="chat-message bot">
+                    Hello! I'm your AI assistant. How can I help you with your bus journey today?
+                    <div class="chat-actions mt-2 d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="showPage('my-bookings'); document.getElementById('chatbot-window').classList.add('hidden');">My Bookings</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="if(window.sendBotMessage) window.sendBotMessage('What is the cancellation policy?')">Cancellation Policy</button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="if(window.sendBotMessage) window.sendBotMessage('Buses from Hyderabad to Vijayawada')">Find a Route</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chatbot-input-area">
+                <input type="text" class="chatbot-input-field" id="chatbot-input" placeholder="Type your question...">
+                <button class="chatbot-send" id="chatbot-send">
+                    <span>➤</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- html2pdf for ticket download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Application Logic -->
+    <script src="config.js?v=5"></script>
+    <script src="ticket-generator.js?v=5"></script>
+    <script src="script.js?v=5"></script>
+</body>
+
+</html>

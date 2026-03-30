@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteX — Driver Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <style>
+        /* === BASE === */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --accent:       #373F51;
+            --accent-light: #545D7A;
+            --accent-glow:  rgba(55,63,81,0.15);
+            --green:        #16a34a;
+            --amber:        #ea580c;
+            --red:          #dc2626;
+            --blue:         #2563eb;
+            --bg-base:      #f8f7ff;
+            --bg-card:      #ffffff;
+            --bg-card-2:    #f1f5f9;
+            --border:       rgba(79,70,229,0.2);
+            --border-soft:  rgba(0,0,0,0.06);
+            --text:         #1e1b4b;
+            --text-muted:   #475569;
+            --text-dim:     #64748b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-base);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated mesh background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79,70,229,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(22,163,74,0.05) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 40% at 50% 50%, rgba(37,99,235,0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* === TOPBAR === */
+        .topbar {
+            position: sticky; top: 0; z-index: 900;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(24px) saturate(160%);
+            border-bottom: 1px solid var(--border-soft);
+            padding: 0 24px;
+            height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .topbar-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; box-shadow: 0 0 16px var(--accent-glow);
+        }
+        .topbar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem; font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: var(--accent); /* Fallback */
+        }
+        .topbar-subtitle { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .live-clock {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem; color: var(--text-dim);
+            background: rgba(0,0,0,0.03);
+            padding: 5px 12px; border-radius: 8px;
+            border: 1px solid var(--border-soft);
+        }
+        .live-badge {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.73rem; color: var(--green);
+            background: rgba(34,211,160,0.1);
+            border: 1px solid rgba(34,211,160,0.25);
+            padding: 4px 12px; border-radius: 20px;
+        }
+        .live-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse-dot 1.5s infinite;
+        }
+        @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        .logout-btn {
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.25);
+            color: #fca5a5; border-radius: 8px;
+            padding: 6px 16px; font-size: 0.8rem; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover { background: rgba(248,113,113,0.22); }
+
+        /* === LAYOUT === */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 300px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative; z-index: 1;
+        }
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 280px 1fr; }
+            .col-right  { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        }
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .col-right { grid-column: span 1; grid-template-columns: 1fr; }
+            .col-left  { display: none; /* Keep left profile hidden on mobile to save space */ }
+        }
+
+        /* === CARD === */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 16px;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: rgba(124,109,255,0.3); }
+        .card-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .card-icon {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: rgba(124,109,255,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+        }
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.92rem; font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* === DRIVER PROFILE === */
+        .avatar-ring {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 12px;
+            box-shadow: 0 0 24px var(--accent-glow), 0 0 48px rgba(124,109,255,0.1);
+            position: relative;
+        }
+        .avatar-ring::after {
+            content: '';
+            position: absolute; inset: -3px;
+            border-radius: 50%;
+            border: 2px solid rgba(124,109,255,0.4);
+            animation: spin-ring 6s linear infinite;
+        }
+        @keyframes spin-ring {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+        .driver-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem; font-weight: 700;
+            text-align: center; color: var(--text);
+        }
+        .driver-tag {
+            display: inline-block;
+            background: rgba(79,70,229,0.1);
+            color: var(--primary);
+            border: 1px solid rgba(79,70,229,0.2);
+            border-radius: 20px; padding: 2px 12px;
+            font-size: 0.72rem; font-weight: 600;
+            text-align: center; margin: 4px auto 12px;
+            display: block; width: fit-content; margin: 4px auto 12px;
+        }
+        .info-row {
+            display: flex; justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border-soft);
+            font-size: 0.82rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-key { color: var(--text-muted); }
+        .info-val { color: var(--text); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+
+        .bus-chip {
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 12px; padding: 12px;
+            margin-top: 12px;
+        }
+        .bus-chip-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .bus-chip-value { font-size: 0.9rem; font-weight: 700; color: var(--primary); margin-top: 2px; }
+        .bus-chip-sub { font-size: 0.72rem; color: var(--text-dim); margin-top: 2px; }
+
+        /* === STAT GRID === */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .stat-tile {
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 14px;
+            padding: 14px 12px;
+            text-align: center;
+            position: relative; overflow: hidden;
+            transition: all 0.2s;
+        }
+        .stat-tile:hover { border-color: var(--border); transform: translateY(-2px); }
+        .stat-tile::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+        .stat-tile.green::before  { background: var(--green); }
+        .stat-tile.amber::before  { background: var(--amber); }
+        .stat-tile.blue::before   { background: var(--blue); }
+        .stat-tile.purple::before { background: var(--accent); }
+        .stat-tile.red::before    { background: var(--red); }
+        .stat-tile.teal::before   { background: #2dd4bf; }
+
+        .stat-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem; font-weight: 800;
+            line-height: 1;
+        }
+        .stat-tile.green  .stat-val { color: var(--green); }
+        .stat-tile.amber  .stat-val { color: var(--amber); }
+        .stat-tile.blue   .stat-val { color: var(--blue); }
+        .stat-tile.purple .stat-val { color: var(--accent-light); }
+        .stat-tile.red    .stat-val { color: var(--red); }
+        .stat-tile.teal   .stat-val { color: #2dd4bf; }
+
+        .stat-lbl { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* === OCCUPANCY BAR === */
+        .occ-bar-wrap { background: rgba(0,0,0,0.05); border-radius: 10px; height: 10px; overflow: hidden; }
+        .occ-bar-fill {
+            height: 100%; border-radius: 10px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* === BOARDING PANEL === */
+        .input-group-driver {
+            display: flex; gap: 8px;
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 12px;
+            padding: 6px 6px 6px 14px;
+            transition: border-color 0.2s;
+        }
+        .input-group-driver:focus-within { border-color: var(--accent); }
+        .input-group-driver input {
+            flex: 1; background: none; border: none;
+            color: var(--text); font-size: 0.9rem;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+        }
+        .input-group-driver input::placeholder { color: var(--text-muted); font-family:'Inter',sans-serif; }
+        .btn-board {
+            background: var(--green);
+            color: #fff; border: none; border-radius: 9px;
+            padding: 8px 18px; font-size: 0.84rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-board:hover { transform: scale(1.04); box-shadow: 0 4px 18px rgba(34,211,160,0.3); }
+        .btn-qr {
+            background: var(--primary);
+            color: #fff; border: none; border-radius: 9px;
+            padding: 8px 18px; font-size: 0.84rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; width: 100%;
+        }
+        .btn-qr:hover { transform: scale(1.02); box-shadow: 0 4px 18px var(--accent-glow); }
+        #qr-reader { border-radius: 12px; overflow: hidden; max-width: 280px; margin: 12px auto 0; }
+
+        /* === SEAT MAP === */
+        .seat-map-wrap { max-width: 240px; margin: 0 auto; }
+        .seat-row-map { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+        .row-num { font-size: 0.6rem; color: var(--text-muted); width: 12px; text-align: right; font-family:'JetBrains Mono',monospace; }
+        .seats-in-row { display: flex; gap: 3px; align-items: center; }
+        .aisle-gap { width: 10px; }
+        .seat-btn {
+            width: 38px; height: 34px; border: none; border-radius: 7px;
+            font-size: 0.6rem; font-weight: 700; cursor: pointer;
+            transition: all 0.15s; position: relative;
+        }
+        .seat-btn.available {
+            background: rgba(22,163,74,0.1);
+            color: var(--green);
+            border: 1px solid rgba(22,163,74,0.2);
+        }
+        .seat-btn.booked {
+            background: rgba(234,88,12,0.1);
+            color: var(--amber);
+            border: 1px solid rgba(234,88,12,0.2);
+        }
+        .seat-btn.boarded {
+            background: rgba(124,109,255,0.25);
+            color: var(--accent-light);
+            border: 1px solid rgba(124,109,255,0.5);
+            box-shadow: 0 0 8px rgba(124,109,255,0.2);
+        }
+        .seat-btn.dropped {
+            background: rgba(80,80,100,0.12);
+            color: #404060;
+            border: 1px solid rgba(80,80,100,0.2);
+        }
+        .seat-btn:hover { transform: scale(1.12); z-index: 2; }
+        .seat-legend {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            justify-content: center; margin-top: 12px; font-size: 0.7rem; color: var(--text-muted);
+        }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+        .legend-dot.avail   { background: rgba(34,211,160,0.4); }
+        .legend-dot.booked  { background: rgba(251,191,36,0.4); }
+        .legend-dot.boarded { background: rgba(124,109,255,0.5); }
+        .legend-dot.dropped { background: rgba(80,80,100,0.3); }
+        .legend-dot.dropping { background: rgba(220,38,38,0.7); animation: blink-red 0.9s infinite; }
+
+        /* === NEXT-STOP DROP BLINK === */
+        @keyframes blink-red {
+            0%, 100% { background: rgba(220,38,38,0.85); box-shadow: 0 0 8px rgba(220,38,38,0.6); }
+            50%       { background: rgba(220,38,38,0.2);  box-shadow: 0 0 2px rgba(220,38,38,0.2); }
+        }
+        .seat-btn.dropping-next {
+            animation: blink-red 0.9s infinite !important;
+            border: 2px solid rgba(220,38,38,0.8) !important;
+            color: #fff !important;
+            font-weight: 800 !important;
+        }
+
+        .seat-info-box {
+            background: rgba(124,109,255,0.06);
+            border: 1px solid rgba(124,109,255,0.15);
+            border-radius: 12px; padding: 12px;
+            font-size: 0.8rem; min-height: 50px; margin-top: 12px;
+        }
+        .seat-info-box .pi-name { font-weight: 700; color: var(--text); font-size: 0.88rem; }
+        .seat-info-box .pi-meta { color: var(--text-dim); margin-top: 3px; }
+
+        /* === PASSENGER TABLE === */
+        .pax-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .pax-table thead th {
+            background: var(--bg-card-2);
+            color: var(--text-muted);
+            padding: 8px 12px; text-align: left;
+            font-weight: 600; font-size: 0.72rem;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border-soft);
+        }
+        .pax-table thead th:first-child { border-radius: 8px 0 0 0; }
+        .pax-table thead th:last-child  { border-radius: 0 8px 0 0; }
+        .pax-table tbody tr { transition: background 0.15s; }
+        .pax-table tbody tr:hover td { background: rgba(0,0,0,0.02); }
+        .pax-table td { padding: 9px 12px; border-bottom: 1px solid var(--border-soft); }
+        .pax-table td code {
+            background: var(--bg-card-2); color: var(--primary);
+            padding: 2px 6px; border-radius: 4px; font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border-soft);
+        }
+
+        .badge-pill {
+            display: inline-block; padding: 2px 9px; border-radius: 20px;
+            font-size: 0.68rem; font-weight: 700;
+        }
+        .badge-booked   { background: rgba(251,191,36,0.15); color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+        .badge-boarded  { background: rgba(124,109,255,0.2);  color: var(--accent-light); border: 1px solid rgba(124,109,255,0.4); }
+        .badge-dropped  { background: rgba(34,211,160,0.12);  color: var(--green); border: 1px solid rgba(34,211,160,0.25); }
+        .badge-cancelled{ background: rgba(248,113,113,0.12); color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+
+        .action-mini {
+            background: none; border: 1px solid;
+            padding: 3px 10px; border-radius: 6px;
+            font-size: 0.7rem; cursor: pointer; transition: all 0.15s;
+        }
+        .action-mini.board  { color: var(--green);  border-color: rgba(34,211,160,0.3); }
+        .action-mini.board:hover  { background: rgba(34,211,160,0.12); }
+        .action-mini.drop   { color: var(--amber);  border-color: rgba(251,191,36,0.3); }
+        .action-mini.drop:hover   { background: rgba(251,191,36,0.1); }
+
+        .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+        .filter-tab {
+            padding: 5px 14px; border-radius: 20px; font-size: 0.75rem;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--border-soft);
+            color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+        }
+        .filter-tab.active, .filter-tab:hover {
+            background: rgba(124,109,255,0.18); border-color: rgba(124,109,255,0.4);
+            color: var(--accent-light);
+        }
+
+        /* === ROUTE PANEL === */
+        .route-track { position: relative; padding-left: 24px; }
+        .route-track::before {
+            content: '';
+            position: absolute; left: 6px; top: 6px; bottom: 6px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--green), var(--accent), rgba(255,255,255,0.08));
+        }
+        .stop-node { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; position: relative; }
+        .stop-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid; flex-shrink: 0;
+            position: absolute; left: -21px; top: 1px;
+        }
+        .stop-node.done     .stop-dot { background: var(--green);  border-color: var(--green);   box-shadow: 0 0 8px rgba(34,211,160,0.4); }
+        .stop-node.current  .stop-dot { background: var(--accent); border-color: var(--accent-light); box-shadow: 0 0 12px var(--accent-glow); animation: pulse-stop 2s infinite; }
+        .stop-node.upcoming .stop-dot { background: transparent;   border-color: rgba(255,255,255,0.2); }
+        @keyframes pulse-stop { 0%,100% { box-shadow: 0 0 12px var(--accent-glow); } 50% { box-shadow: 0 0 24px rgba(124,109,255,0.6); } }
+
+        .stop-label { font-size: 0.83rem; }
+        .stop-node.done     .stop-label { color: var(--green); }
+        .stop-node.current  .stop-label { color: var(--accent-light); font-weight: 700; }
+        .stop-node.upcoming .stop-label { color: var(--text-muted); }
+        .stop-node-badge {
+            font-size: 0.62rem; padding: 1px 7px; border-radius: 20px; margin-left: 6px;
+        }
+
+        .curr-stop-card {
+            background: rgba(22,163,74,0.05);
+            border: 1px solid rgba(22,163,74,0.2);
+            border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+        }
+        .curr-stop-card .label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .curr-stop-card .stop-name { font-size: 1.05rem; font-weight: 700; color: var(--green); margin-top: 2px; }
+
+        .next-stop-card {
+            background: rgba(79,70,229,0.05);
+            border: 1px solid rgba(79,70,229,0.2);
+            border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;
+        }
+        .next-stop-card .label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .next-stop-card .stop-name { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-top: 2px; }
+
+        .drop-alert {
+            background: rgba(251,191,36,0.08);
+            border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 12px; padding: 10px 14px; margin-bottom: 14px;
+            font-size: 0.8rem;
+        }
+        .drop-alert .drop-title { color: var(--amber); font-weight: 600; margin-bottom: 2px; }
+        .drop-alert .drop-sub   { color: var(--text-muted); }
+
+        .btn-next {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, var(--accent), #5b4de0);
+            border: none; border-radius: 12px; color: #fff;
+            font-family: 'Outfit', sans-serif; font-weight: 700;
+            font-size: 0.95rem; cursor: pointer; transition: all 0.25s;
+            box-shadow: 0 4px 24px var(--accent-glow);
+            letter-spacing: 0.3px;
+        }
+        .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(124,109,255,0.4); }
+        .btn-next:active { transform: translateY(0); }
+
+        .progress-line {
+            height: 6px; border-radius: 3px;
+            background: rgba(255,255,255,0.06);
+            overflow: hidden; margin-bottom: 10px;
+        }
+        .progress-line-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* === TOAST === */
+        #toast-host {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast-item {
+            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            border-radius: 14px; padding: 12px 18px; font-size: 0.85rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); color: var(--text);
+            min-width: 260px; max-width: 340px;
+            animation: toast-in 0.3s cubic-bezier(0.4,0,0.2,1) forwards;
+            pointer-events: all;
+        }
+        @keyframes toast-in {
+            from { transform: translateX(60px); opacity:0; }
+            to   { transform: translateX(0);    opacity:1; }
+        }
+
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg-card-2); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+    <div class="topbar-brand">
+        <img src="logo RouteX.png" alt="RouteX Logo" style="height: 36px; object-fit: contain;">
+        <div>
+            <div class="topbar-title">RouteX Driver Console</div>
+            <div class="topbar-subtitle" id="driverName">Authenticating…</div>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="live-badge"><div class="live-dot"></div>Live</div>
+        <div class="live-clock" id="liveClock">--:--:--</div>
+        <button class="logout-btn" onclick="logoutDriver()" style="background:var(--bg-card-2);border:1px solid var(--border-soft);color:var(--text-muted);">Logout ↩</button>
+    </div>
+</header>
+
+<!-- MAIN -->
+<div class="main-grid">
+
+    <!-- === LEFT === -->
+    <div class="col-left">
+
+        <!-- Driver Profile -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">👤</div>
+                <div class="card-title">Driver Profile</div>
+            </div>
+            <div class="avatar-ring">🧑‍✈️</div>
+            <div class="driver-name" id="driverNameCard">—</div>
+            <div class="driver-tag">Licensed Driver</div>
+
+            <div class="info-row">
+                <span class="info-key">License</span>
+                <span class="info-val" id="driverLicense">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Phone</span>
+                <span class="info-val" id="driverPhone">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Performance</span>
+                <span class="info-val" id="driverPerf" style="color:var(--green)">—</span>
+            </div>
+
+            <div class="bus-chip">
+                <div class="bus-chip-label">Assigned Bus</div>
+                <div class="bus-chip-value" id="driverBusNumber">—</div>
+                <div class="bus-chip-sub" id="driverBusType">—</div>
+                <div class="bus-chip-sub" id="driverCapacity" style="margin-top:4px;"></div>
+            </div>
+
+            <div class="bus-chip" style="margin-top:10px; background:var(--bg-card-2); border-color:var(--border-soft);">
+                <div class="bus-chip-label">Route</div>
+                <div class="bus-chip-value" id="driverRoute" style="color:var(--primary);font-size:0.82rem;">—</div>
+                <div class="bus-chip-sub"><span id="busStatusBadge" class="badge-pill badge-boarded">Active</span></div>
+            </div>
+        </div>
+
+        <!-- Seat Map -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🗺️</div>
+                <div class="card-title">Live Seat Map</div>
+            </div>
+            <div class="seat-map-wrap">
+                <div id="seatLayout"></div>
+                <div class="seat-legend">
+                    <span><span class="legend-dot avail"></span>Free</span>
+                    <span><span class="legend-dot booked"></span>Booked</span>
+                    <span><span class="legend-dot boarded"></span>Boarded</span>
+                    <span><span class="legend-dot dropped"></span>Dropped</span>
+                    <span><span class="legend-dot dropping"></span>🔴 Dropping Next</span>
+                </div>
+            </div>
+            <div class="seat-info-box" id="seatInfoBox" style="background:var(--bg-card-2); border-color:var(--border-soft);">
+                <span style="color:var(--text-muted);font-size:0.78rem;">Click a seat to view passenger info.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- === CENTER === -->
+    <div class="col-center">
+
+        <!-- Stats -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📊</div>
+                <div class="card-title">Live Dashboard</div>
+                <button onclick="refreshDriverBookings()" style="margin-left:auto;background:var(--bg-card-2);border:1px solid var(--border-soft);color:var(--text-muted);border-radius:7px;padding:3px 12px;font-size:0.72rem;cursor:pointer;">↻ Refresh</button>
+            </div>
+            <div class="stat-grid">
+                <div class="stat-tile green">
+                    <div class="stat-val" id="passengers">0</div>
+                    <div class="stat-lbl">Boarded</div>
+                </div>
+                <div class="stat-tile amber">
+                    <div class="stat-val" id="bookedCount">0</div>
+                    <div class="stat-lbl">Waiting</div>
+                </div>
+                <div class="stat-tile teal">
+                    <div class="stat-val" id="droppedCount">0</div>
+                    <div class="stat-lbl">Dropped</div>
+                </div>
+                <div class="stat-tile blue">
+                    <div class="stat-val" id="availableSeats">0</div>
+                    <div class="stat-lbl">Empty Seats</div>
+                </div>
+                <div class="stat-tile purple">
+                    <div class="stat-val" id="occupancyPercent">0%</div>
+                    <div class="stat-lbl">Occupancy</div>
+                </div>
+                <div class="stat-tile red">
+                    <div class="stat-val" id="totalCapacity">32</div>
+                    <div class="stat-lbl">Capacity</div>
+                </div>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;display:flex;justify-content:space-between;">
+                <span>Bus Occupancy</span>
+                <span id="occPct2" style="color:var(--accent-light)">0%</span>
+            </div>
+            <div class="occ-bar-wrap">
+                <div class="occ-bar-fill" id="occBar" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Boarding -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🎟</div>
+                <div class="card-title">Passenger Boarding</div>
+            </div>
+            <div class="input-group-driver mb-3">
+                <input type="text" id="ticketInput" placeholder="Enter Ticket ID — e.g. TKT-AB1234" />
+                <button class="btn-board" onclick="boardPassenger()">✅ Board</button>
+            </div>
+            
+            <button id="scannerBtn" class="btn-next mb-2" onclick="startScanner()" style="background:var(--primary);">📱 QR Scanner</button>
+            <div id="qr-reader" style="width:100%; max-width:300px; margin:0 auto; overflow:hidden; border-radius:12px;"></div>
+        </div>
+
+        <!-- Passenger List -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">👥</div>
+                <div class="card-title">Passenger Manifest</div>
+            </div>
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterPassengers('')">All</button>
+                <button class="filter-tab" onclick="filterPassengers('Booked')">⏳ Waiting</button>
+                <button class="filter-tab" onclick="filterPassengers('Boarded')">✅ Boarded</button>
+                <button class="filter-tab" onclick="filterPassengers('Dropped')">🏁 Dropped</button>
+            </div>
+            <div style="overflow-x:auto; border-radius:10px; border:1px solid var(--border-soft);">
+                <table class="pax-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Passenger</th>
+                            <th>Seat</th>
+                            <th>Route</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="passengerTableBody">
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Loading passengers…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- === RIGHT === -->
+    <div class="col-right">
+
+        <!-- Route Progress -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📍</div>
+                <div class="card-title">Route Progress</div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">
+                <span>Journey</span>
+                <span id="stopProgress" style="color:var(--accent-light)">Stop 1 of 5</span>
+            </div>
+            <div class="progress-line mb-3">
+                <div class="progress-line-fill" id="routeProgressBar" style="width:0%"></div>
+            </div>
+
+            <div class="curr-stop-card">
+                <div class="label">Current Stop</div>
+                <div class="stop-name" id="currentStop">—</div>
+            </div>
+            <div class="next-stop-card">
+            <div class="label">Next Stop</div>
+            <div class="stop-name" id="nextStop">Loading...</div>
+            <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,159,183,0.15);">
+                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Dropping Here</div>
+                <div id="droppingNext" style="font-weight:700; color:var(--red); font-size:1.1rem; letter-spacing:1px;">No Drops</div>
+            </div>
+        </div>
+
+            <div class="route-track mb-3" id="stopList"></div>
+
+            <button class="btn-next" onclick="nextStop()">➡ Advance to Next Stop</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-host"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="config.js?v=7"></script>
+<script src="driver.js?v=7"></script>
+<script>
+    // Clock
+    function tick() {
+        const now = new Date();
+        const el = document.getElementById('liveClock');
+        if (el) el.textContent = now.toLocaleTimeString('en-IN', { hour12: false });
+    }
+    setInterval(tick, 1000); tick();
+
+    // Sync occupancy bar
+    function syncOccBar() {
+        const raw = document.getElementById('occupancyPercent')?.textContent || '0%';
+        const val = parseInt(raw) || 0;
+        const bar = document.getElementById('occBar');
+        const pct2 = document.getElementById('occPct2');
+        if (bar)  bar.style.width = val + '%';
+        if (pct2) pct2.textContent = val + '%';
+    }
+    setInterval(syncOccBar, 1000);
+
+    // Sync driverNameCard with topbar
+    function syncName() {
+        const bar = document.getElementById('driverName');
+        const card = document.getElementById('driverNameCard');
+        if (bar && card) card.textContent = bar.textContent;
+    }
+    setInterval(syncName, 500);
+
+    // Filter tabs highlight
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+</script>
+</body>
+</html>
