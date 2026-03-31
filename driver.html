@@ -346,16 +346,26 @@
         .legend-dot.dropped { background: rgba(80,80,100,0.3); }
         .legend-dot.dropping { background: rgba(220,38,38,0.7); animation: blink-red 0.9s infinite; }
 
-        /* === NEXT-STOP DROP BLINK === */
-        @keyframes blink-red {
-            0%, 100% { background: rgba(220,38,38,0.85); box-shadow: 0 0 8px rgba(220,38,38,0.6); }
-            50%       { background: rgba(220,38,38,0.2);  box-shadow: 0 0 2px rgba(220,38,38,0.2); }
+        /* === BLINKING ANIMATIONS === */
+        @keyframes anim-dropping-soon {
+             0%, 100% { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); border: 2px solid rgba(245, 158, 11, 0.6); }
+             50% { background: #fef3c7; box-shadow: 0 0 4px rgba(245, 158, 11, 0.1); border-color: #f59e0b; }
         }
+        @keyframes anim-overstay-red {
+             0%, 100% { background: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); border: 2px solid #ef4444; }
+             50% { background: #fee2e2; box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); border-color: #b91c1c; }
+        }
+
         .seat-btn.dropping-next {
-            animation: blink-red 0.9s infinite !important;
-            border: 2px solid rgba(220,38,38,0.8) !important;
-            color: #fff !important;
+            animation: anim-dropping-soon 1s infinite !important;
+            color: #78350f !important;
             font-weight: 800 !important;
+        }
+        .seat-btn.blinking-red {
+            animation: anim-overstay-red 0.7s infinite !important;
+            color: #7f1d1d !important;
+            font-weight: 900 !important;
+            z-index: 5;
         }
 
         .seat-info-box {
@@ -513,10 +523,76 @@
             to   { transform: translateX(0);    opacity:1; }
         }
 
+
+
+        /* === OVERSTAY ALERT BOX === */
+        .overstay-container {
+            margin-top: 16px;
+            display: none; /* Shown via JS when penalties exist */
+        }
+        .overstay-header {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px 12px 0 0;
+            padding: 10px 14px;
+            display: flex; align-items: center; gap: 8px;
+            color: #ef4444; font-weight: 700; font-size: 0.85rem;
+        }
+        .overstay-list {
+            background: rgba(239, 68, 68, 0.04);
+            border: 1px solid rgba(239, 68, 68, 0.1);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            padding: 8px;
+            max-height: 200px; overflow-y: auto;
+        }
+        .overstay-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 6px; font-size: 0.78rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .overstay-item:last-child { margin-bottom: 0; }
+        .overstay-info strong { color: #fecaca; }
+
         /* === SCROLLBAR === */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--bg-card-2); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        /* === THERMAL RECEIPT STYLE === */
+        .receipt-container {
+            background: #fff;
+            color: #111;
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            max-width: 320px;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        .receipt-header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 12px; margin-bottom: 12px; }
+        .receipt-logo { font-size: 1.4rem; font-weight: 900; letter-spacing: 2px; color: #111; }
+        .receipt-divider { border-top: 1px dashed #ccc; margin: 10px 0; }
+        .receipt-row { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; }
+        .receipt-total { font-size: 1.1rem; font-weight: 900; margin-top: 10px; padding-top: 8px; border-top: 2px solid #111; }
+        .paid-stamp {
+            position: absolute; top: 40%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            border: 4px solid rgba(22, 163, 74, 0.4);
+            color: rgba(22, 163, 74, 0.4);
+            padding: 8px 20px; font-size: 2.2rem; font-weight: 900;
+            text-transform: uppercase; border-radius: 8px;
+            pointer-events: none; display: none; /* Shown via class */
+        }
+        .receipt-container.paid .paid-stamp { display: block; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .receipt-container, .receipt-container * { visibility: visible; }
+            .receipt-container { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+            .modal-footer, .btn-close { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -593,7 +669,8 @@
                     <span><span class="legend-dot booked"></span>Booked</span>
                     <span><span class="legend-dot boarded"></span>Boarded</span>
                     <span><span class="legend-dot dropped"></span>Dropped</span>
-                    <span><span class="legend-dot dropping"></span>🔴 Dropping Next</span>
+                    <span><span class="legend-dot dropping" style="background:#f59e0b; animation: anim-dropping-soon 1s infinite;"></span>🟡 Approaching Drop Stop</span>
+                    <span><span class="legend-dot blinking-red" style="background:#ef4444; animation: anim-overstay-red 0.7s infinite;"></span>⚠️ Overstay / Drop Now</span>
                 </div>
             </div>
             <div class="seat-info-box" id="seatInfoBox" style="background:var(--bg-card-2); border-color:var(--border-soft);">
@@ -728,6 +805,141 @@
             <div class="route-track mb-3" id="stopList"></div>
 
             <button class="btn-next" onclick="nextStop()">➡ Advance to Next Stop</button>
+            <div id="overstayContainer" class="card overstay-container mt-3">
+                <div class="overstay-header">
+                    <span style="font-size: 1.1rem;">🚨</span> Overstay Alert
+                </div>
+                <div id="overstayList" class="overstay-list">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PENALTY MODAL -->
+<div class="modal fade" id="penaltyModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: #111827; border: 1px solid #ef4444; border-radius: 16px; color: #fff;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2);">
+                <h5 class="modal-title" style="color: #ef4444; font-weight: 800;">⚠️ TRAVEL OVERSTAY PENALTY</h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🎫</div>
+                <h4 id="penaltyPassengerName" style="font-weight: 700; margin-bottom: 4px;">—</h4>
+                <p id="penaltyTicketId" class="text-muted mb-4" style="font-family: monospace; letter-spacing: 1px;">—</p>
+                
+                <div class="curr-stop-card" style="background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2);">
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem;">
+                        <span>Booked Drop:</span>
+                        <strong id="penaltyBookedDrop">—</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.85rem;">
+                        <span>Actual Drop:</span>
+                        <strong id="penaltyActualDrop" style="color: #ef4444;">—</strong>
+                    </div>
+                    <hr style="border-color: rgba(255,255,255,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="text-align: left;">
+                            <span style="font-weight: 600; display: block;">EXTRA CHARGE:</span>
+                            <small id="penaltyBreakdown" style="font-size: 0.65rem; color: #ef4444; opacity: 0.8;">0 stops + 0 km</small>
+                        </div>
+                        <span id="penaltyAmountDisplay" style="font-size: 1.5rem; font-weight: 900; color: #ef4444;">₹0</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-start">
+                    <label class="form-label text-muted small mb-2" style="text-transform: uppercase; letter-spacing: 1px;">Payment Method</label>
+                    <div class="d-flex gap-2">
+                        <input type="radio" class="btn-check" name="penaltyPaymentMethod" id="payCash" value="Cash" checked>
+                        <label class="btn btn-outline-success flex-grow-1 py-3" for="payCash" style="border-radius: 12px; font-weight: 700;">
+                             💵 Cash
+                        </label>
+
+                        <input type="radio" class="btn-check" name="penaltyPaymentMethod" id="payOnline" value="Online/UPI">
+                        <label class="btn btn-outline-info flex-grow-1 py-3" for="payOnline" style="border-radius: 12px; font-weight: 700;">
+                             📱 Online
+                        </label>
+                    </div>
+                </div>
+
+                <p class="mt-4 text-muted" style="font-size: 0.75rem;">Passenger must pay the extra fare to the driver before the ticket is cleared.</p>
+            </div>
+            <div class="modal-footer" style="border-top: none; padding-bottom: 24px; justify-content: center;">
+                <button type="button" class="btn btn-secondary" onclick="cancelPenalty()" style="border-radius: 10px;">Return to Journey</button>
+                <button type="button" id="confirmPenaltyBtn" class="btn btn-danger" style="background: #ef4444; border-radius: 10px; padding: 10px 24px; font-weight: 700;">Confirm Payment & Drop</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: transparent; border: none;">
+            <div class="modal-body p-0">
+                <div class="receipt-container paid" id="penaltyReceiptContent">
+                    <div class="paid-stamp">PAID</div>
+                    <div class="receipt-header">
+                        <div class="receipt-logo">RouteX BUS</div>
+                        <div style="font-size: 0.65rem; color: #666; margin-top: 4px;">OFFICIAL PENALTY RECEIPT</div>
+                        <div style="font-size: 0.6rem; color: #999;" id="receiptTimestamp">01-Apr-2026 10:30 AM</div>
+                    </div>
+                    
+                    <div class="receipt-row">
+                        <span>Ticket ID:</span>
+                        <strong id="receiptTicketId">—</strong>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Passenger:</span>
+                        <strong id="receiptPassenger">—</strong>
+                    </div>
+                    
+                    <div class="receipt-divider"></div>
+                    
+                    <div class="receipt-row">
+                        <span>Pickup:</span>
+                        <strong id="receiptPickup">—</strong>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Original Drop:</span>
+                        <strong id="receiptOriginalDrop">—</strong>
+                    </div>
+                    <div class="receipt-row" style="color: #d32f2f;">
+                        <span>Actual Drop:</span>
+                        <strong id="receiptActualDrop">—</strong>
+                    </div>
+
+                    <div class="receipt-row" style="font-size: 0.6rem; color: #666; margin-top: 4px;">
+                        <span>Extra Distance:</span>
+                        <span id="receiptBreakdown">—</span>
+                    </div>
+                    
+                    <div class="receipt-divider"></div>
+                    
+                    <div class="receipt-row">
+                        <span>Status:</span>
+                        <strong>Penalty Charged</strong>
+                    </div>
+                    <div class="receipt-row">
+                        <span>Method:</span>
+                        <strong id="receiptMethod">—</strong>
+                    </div>
+                    
+                    <div class="receipt-total">
+                        <span>TOTAL PAID:</span>
+                        <span id="receiptTotalAmount">₹0</span>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px; font-size: 0.6rem; color: #666;">
+                        *** Thank you for choosing RouteX ***<br>
+                        Digital Payment Confirmation System
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center" style="border: none; padding-top: 20px;">
+                <button type="button" class="btn btn-light" onclick="window.print()" style="border-radius: 10px; font-weight: 600;">🖨 Print</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" style="border-radius: 10px; font-weight: 600; padding: 10px 40px;">Done</button>
+            </div>
         </div>
     </div>
 </div>
