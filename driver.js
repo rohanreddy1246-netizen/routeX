@@ -343,9 +343,10 @@ async function refreshDriverBookings() {
         }
     });
 
+    // Handle blinking for overstays and arriving passengers
+    highlightRelevantSeats();
+
     // DYNAMICALLY MERGE PASSENGER STOPS INTO THE ROUTE Sequence
-    // This allows the driver to see stops that passengers booked from the static dropdown 
-    // but the admin didn't explicitly add to the route!
     if (assignedBus) {
         let baseStops = (Array.isArray(assignedBus.stops) && assignedBus.stops.length > 1) 
             ? [...assignedBus.stops] 
@@ -354,7 +355,6 @@ async function refreshDriverBookings() {
         const missingStops = Array.from(passengerCustomStops).filter(s => !baseStops.includes(s));
         
         if (missingStops.length > 0 && baseStops.length >= 2) {
-            // Insert missing stops right before the final destination
             const finalStop = baseStops.pop();
             driverStops = [...baseStops, ...missingStops, finalStop];
         } else if (missingStops.length > 0) {
@@ -365,7 +365,7 @@ async function refreshDriverBookings() {
     }
 
     updateDashboardStats();
-    updateStopDisplay(); // Re-render the stop line with the new injected stops
+    updateStopDisplay();
     renderPassengerList();
 }
 
@@ -392,7 +392,20 @@ function updateDashboardStats() {
     s('droppedCount',    dropped.length);
     s('totalCapacity',   capacity);
 
-    // Who's dropping at next stop?
+    // Who's dropping at next stop and who is OVERSTAYING?
+    let overstayPassengers = [];
+    const currentStopName = driverStops[currentStopIndex] || '';
+
+    active.forEach(p => {
+        let actualDropIdx = driverStops.findIndex(s => s.toLowerCase() === (p.drop || '').toLowerCase());
+        if (actualDropIdx === -1) {
+             actualDropIdx = driverStops.findIndex(s => s.toLowerCase().includes((p.drop || '').toLowerCase()) || (p.drop || '').toLowerCase().includes(s.toLowerCase()));
+        }
+        if (actualDropIdx !== -1 && currentStopIndex > actualDropIdx) {
+            overstayPassengers.push(p);
+        }
+    });
+
     const nextStopName = driverStops[currentStopIndex + 1] || '';
     if (nextStopName) {
         const droppingNext = active.filter(p => 
@@ -407,6 +420,32 @@ function updateDashboardStats() {
     } else {
         s('droppingNext', 'Final Stop reached');
     }
+
+    renderOverstays(overstayPassengers);
+}
+
+function renderOverstays(overstays) {
+    const container = document.getElementById('overstayContainer');
+    const list = document.getElementById('overstayList');
+    if (!container || !list) return;
+
+    if (overstays.length === 0) {
+        container.style.display = 'none';
+        list.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'block';
+    list.innerHTML = overstays.map(p => `
+        <div class="overstay-item">
+            <div class="overstay-info">
+                <strong>${p.name}</strong> 
+                <span class="ms-1 px-2 py-1 badge bg-danger text-white rounded-pill" style="font-size:0.65rem">Seat ${p.seat}</span><br>
+                <span class="text-muted" style="font-size:0.7rem">Dest: ${p.drop}</span>
+            </div>
+            <button class="action-mini drop" style="border-color:#ef4444; color:#ef4444" onclick="checkoutTicket('${p.ticketId}')">Tap Out</button>
+        </div>
+    `).join('');
 }
 
 // =============================================
@@ -445,7 +484,7 @@ function renderPassengerList() {
                 ${ displayStatus === 'Booked'
                     ? `<button class="action-mini board" onclick="boardByTicket('${p.ticketId}')">Board ✓</button>`
                     : rawStatus === 'boarded'
-                    ? `<button class="action-mini drop"  onclick="checkoutTicket('${p.ticketId}')">🏁 Tap-Out</button>`
+                    ? `<button class="action-mini drop"  onclick="manualDrop('${p.ticketId}')">🏁 Drop</button>`
                     : '—' }
             </td>
         </tr>`;
@@ -560,20 +599,18 @@ async function boardByTicket(ticketId) {
     setTimeout(() => refreshDriverBookings(), 2000);
 }
 
-async function manualDrop(ticketId, _actualDrop, skipConfirm = false) {
-    if (!skipConfirm && !confirm(`Mark ticket ${ticketId} as Dropped?`)) return;
+async function manualDrop(ticketId) {
+    if (!confirm(`Mark ticket ${ticketId} as Dropped?`)) return;
     if (!window.supabaseClient) return;
 
-    // ── TRUE INSTANT OPTIMISTIC UPDATE ──
     allPassengersCache = allPassengersCache.map(p =>
         p.ticketId === ticketId ? { ...p, status: 'Dropped' } : p
     );
     
     updateDashboardStats();
     renderPassengerList();
-    showToast(`🏁 Dropped ticket ${ticketId}`);
+    showToast(`🏁 Checked out ticket ${ticketId}`);
 
-    // background sync
     window.supabaseClient.from('passengers')
         .update({ status: 'Dropped' })
         .eq('ticket_id', ticketId)
@@ -583,6 +620,68 @@ async function manualDrop(ticketId, _actualDrop, skipConfirm = false) {
 
     setTimeout(() => refreshDriverBookings(), 1500);
 }
+
+function cancelPenalty() {
+    currentPenaltyTicket = null;
+    const myModalEl = document.getElementById('penaltyModal');
+    const myModal = bootstrap.Modal.getInstance(myModalEl);
+    if (myModal) myModal.hide();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('confirmPenaltyBtn')?.addEventListener('click', async () => {
+        if (!currentPenaltyTicket) return;
+        
+        const payMethod = document.querySelector('input[name="penaltyPaymentMethod"]:checked')?.value || 'Unknown';
+        
+        // Log the penalty to Admin logs
+        const logs = JSON.parse(localStorage.getItem('admin-logs') || '[]');
+        logs.push({
+            id: Date.now(),
+            time: new Date().toLocaleString(),
+            action: `Penalty Collected (${payMethod}): ₹${currentPenaltyTicket.amount} for Ticket ${currentPenaltyTicket.ticketId} (Overstayed to ${driverStops[currentStopIndex]})`
+        });
+        localStorage.setItem('admin-logs', JSON.stringify(logs));
+
+        // Show receipt
+        const pDataCopy = JSON.parse(JSON.stringify(currentPenaltyTicket));
+        const currentStopName = (driverStops && driverStops[currentStopIndex]) || 'N/A';
+        
+        // Populate and show receipt
+        showPenaltyReceipt(pDataCopy, payMethod, currentStopName);
+
+        // Hide penalty modal
+        const myModal = bootstrap.Modal.getInstance(document.getElementById('penaltyModal'));
+        if (myModal) myModal.hide();
+        
+        // Execute actual checkout
+        await executeTapOut(pDataCopy.ticketId);
+        currentPenaltyTicket = null;
+    });
+});
+
+function showPenaltyReceipt(pData, method, actualDrop) {
+    const p = pData.passengers[0]; // Main passenger details
+    
+    document.getElementById('receiptTimestamp').textContent = new Date().toLocaleString();
+    document.getElementById('receiptTicketId').textContent = pData.ticketId;
+    document.getElementById('receiptPassenger').textContent = p.name + (pData.passengers.length > 1 ? ` (+${pData.passengers.length-1})` : '');
+    
+    document.getElementById('receiptPickup').textContent = p.pickup;
+    document.getElementById('receiptOriginalDrop').textContent = p.drop;
+    document.getElementById('receiptActualDrop').textContent = actualDrop;
+    
+    // Show breakdown in receipt
+    const details = pData.details || { stops: 0, km: 0 };
+    document.getElementById('receiptBreakdown').textContent = `${details.stops} stops | ${details.km} km travelled extra`;
+    
+    document.getElementById('receiptMethod').textContent = method;
+    document.getElementById('receiptTotalAmount').textContent = `₹${pData.amount}`;
+
+    const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    receiptModal.show();
+}
+
 
 // One-stop function: repaints the full seat map from allPassengersCache
 function applySeatsFromCache() {
@@ -600,8 +699,8 @@ function applySeatsFromCache() {
             p.status === 'Dropped' ? 'dropped' : 'booked'
         );
     });
-    // Blink seats dropping at next stop
-    highlightNextDropSeats();
+    // Blink seats dropping at next stop AND overstaying seats
+    highlightRelevantSeats();
 }
 
 // =============================================
@@ -632,7 +731,7 @@ function updateStopDisplay() {
     }
 
     // Re-apply blinking on stop change
-    highlightNextDropSeats();
+    highlightRelevantSeats();
 }
 
 async function nextStop() {
@@ -645,7 +744,21 @@ async function nextStop() {
     const currentStopName = driverStops[currentStopIndex];
     updateStopDisplay();
 
-    showToast(`➡️ Moved to: ${currentStopName}`);
+    // Auto-drop passengers arriving at this stop
+    const dropping = allPassengersCache.filter(p =>
+        p.status === 'Boarded' &&
+        (p.drop.toLowerCase().includes(currentStopName.toLowerCase()) || p.drop === currentStopName)
+    );
+
+    if (dropping.length > 0 && window.supabaseClient) {
+        for (const p of dropping) {
+            await window.supabaseClient.from('passengers').update({ status: 'Dropped' }).eq('ticket_id', p.ticketId);
+        }
+        showToast(`🏁 Arrived at ${currentStopName}! Auto-dropped ${dropping.length} passenger(s).`);
+    } else {
+        showToast(`➡️ Moved to: ${currentStopName}`);
+    }
+
     await refreshDriverBookings();
 }
 
@@ -658,168 +771,26 @@ async function nextStop() {
 // =============================================
 function highlightNextDropSeats() {
     const nextStopName = (driverStops[currentStopIndex + 1] || '').toLowerCase();
-    const currentStopIndexSafe = currentStopIndex;
 
-    // Clear existing warnings
-    document.querySelectorAll('.seat-btn.dropping-next, .seat-btn.overstay-alert').forEach(btn => {
+    // First, clear any existing blink from all seats
+    document.querySelectorAll('.seat-btn.dropping-next').forEach(btn => {
         btn.classList.remove('dropping-next');
-        btn.classList.remove('overstay-alert');
     });
 
-    let overstayingPassengers = [];
+    if (!nextStopName) return; // Already at last stop
 
-    // Evaluate each boarded passenger
-    allPassengersCache.filter(p => p.status === 'Boarded').forEach(p => {
-        let dropStopIndex = -1;
-        if (p.drop) {
-            dropStopIndex = driverStops.findIndex(s => s.toLowerCase() === p.drop.toLowerCase() || s.toLowerCase().includes(p.drop.toLowerCase()) || p.drop.toLowerCase().includes(s.toLowerCase()));
-        }
+    // Find boarded passengers dropping at next stop
+    const droppingSeats = allPassengersCache
+        .filter(p => p.status === 'Boarded' &&
+            (p.drop.toLowerCase() === nextStopName ||
+             p.drop.toLowerCase().includes(nextStopName) ||
+             nextStopName.includes(p.drop.toLowerCase())))
+        .map(p => p.seat);
 
-        if (dropStopIndex !== -1) {
-            const btn = document.querySelector(`[data-seat="${p.seat}"]`);
-            if (!btn) return;
-
-            if (dropStopIndex < currentStopIndexSafe) {
-                // OVERSTAY: They missed their stop!
-                btn.classList.add('overstay-alert');
-                overstayingPassengers.push(p);
-            } else if (dropStopIndex === currentStopIndexSafe + 1) {
-                // NEXT STOP: Get ready to drop
-                btn.classList.add('dropping-next');
-            }
-        }
+    droppingSeats.forEach(seat => {
+        const btn = document.querySelector(`[data-seat="${seat}"]`);
+        if (btn) btn.classList.add('dropping-next');
     });
-
-    updateOverstaySidebar(overstayingPassengers);
-}
-
-function updateOverstaySidebar(overstays) {
-    const card = document.getElementById('overstayAlertCard');
-    const list = document.getElementById('overstayList');
-    if (!card || !list) return;
-
-    if (overstays.length === 0) {
-        card.style.display = 'none';
-        return;
-    }
-
-    card.style.display = 'block';
-    list.innerHTML = overstays.map(p => `
-        <div style="border-bottom:1px solid rgba(220,38,38,0.2); padding:6px 0;">
-            <strong style="color:var(--red);">${p.seat}</strong> - ${p.name} 
-            <div style="margin-bottom: 6px;"><small style="color:var(--text-muted);">Missed: ${p.drop}</small></div>
-            <button class="btn btn-sm btn-outline-danger mt-1" style="font-size:0.7rem;padding:2px 6px;" onclick="checkoutTicket('${p.ticketId}')">Checkout Now</button>
-        </div>
-    `).join('');
-}
-
-// =============================================
-// PENALTY CALCULATION SYSTEM
-// =============================================
-let currentPenaltyData = null;
-
-function getDetailedPenalty(bookedDrop, actualDrop) {
-    const bookedIndex = driverStops.findIndex(s => s.toLowerCase().includes(bookedDrop.toLowerCase()) || bookedDrop.toLowerCase().includes(s.toLowerCase()));
-    const actualIndex = driverStops.findIndex(s => s.toLowerCase().includes(actualDrop.toLowerCase()) || actualDrop.toLowerCase().includes(s.toLowerCase()));
-    
-    if (bookedIndex === -1 || actualIndex === -1 || actualIndex <= bookedIndex) {
-        return { isPenalty: false, amount: 0, extraStops: 0, extraKm: 0 };
-    }
-
-    const extraStops = actualIndex - bookedIndex;
-    const extraKm = extraStops * 30; // Assuming ~30km per node
-    
-    // Formula: ₹100 per extra stop + ₹5 per km
-    const penaltyFares = (extraStops * 100) + (extraKm * 5);
-    
-    return {
-        isPenalty: true,
-        amount: penaltyFares,
-        extraStops: extraStops,
-        extraKm: extraKm
-    };
-}
-
-async function checkoutTicket(ticketId) {
-    const p = allPassengersCache.find(x => x.ticketId === ticketId);
-    if (!p) return;
-
-    const actualDropName = driverStops[currentStopIndex] || 'Final Stop';
-    const penalty = getDetailedPenalty(p.drop, actualDropName);
-
-    if (penalty.isPenalty) {
-        // OVERSTAY DETECTED - Trigger Modal
-        currentPenaltyData = { passenger: p, actualDrop: actualDropName, penalty: penalty };
-        
-        document.getElementById('pm-ticket').innerText = ticketId;
-        document.getElementById('pm-booked-drop').innerText = p.drop;
-        document.getElementById('pm-actual-drop').innerText = actualDropName;
-        document.getElementById('pm-amount').innerText = `\u20b9${penalty.amount}`;
-        
-        document.getElementById('pm-breakdown').innerHTML = `
-            <div>Extra Stops Crossed: <strong style="color:var(--text);">${penalty.extraStops} stops</strong></div>
-            <div>Estimated Extra Distance: <strong style="color:var(--text);">${penalty.extraKm} km</strong></div>
-            <div style="margin-top:4px;">Formula: (Stops &times; \u20b9100) + (Km &times; \u20b95)</div>
-        `;
-        
-        const modal = new bootstrap.Modal(document.getElementById('penaltyModal'));
-        modal.show();
-    } else {
-        // Normal Drop - manualDrop will ask for confirm
-        await manualDrop(ticketId);
-    }
-}
-
-async function confirmPenalty(paymentMethod) {
-    if (!currentPenaltyData) return;
-    
-    const { passenger, actualDrop, penalty } = currentPenaltyData;
-    
-    // Log revenue to Admin logs securely
-    const logs = JSON.parse(localStorage.getItem('admin-logs') || '[]');
-    logs.push({ 
-        timestamp: new Date().toISOString(), 
-        action: `Penalty Collected (${paymentMethod}): ₹${penalty.amount} for Ticket ${passenger.ticketId}`, 
-        admin: currentDriver?.email || 'Driver'
-    });
-    localStorage.setItem('admin-logs', JSON.stringify(logs.slice(-100)));
-    
-    // Clean up UI
-    const modal = bootstrap.Modal.getInstance(document.getElementById('penaltyModal'));
-    if (modal) modal.hide();
-    
-    // Complete the DB drop - skipConfirm since already approved via modal
-    await manualDrop(passenger.ticketId, actualDrop, true);
-    
-    // Show thermal receipt
-    showPenaltyReceipt(passenger, actualDrop, penalty, paymentMethod);
-    
-    currentPenaltyData = null;
-}
-
-function cancelPenalty() {
-    currentPenaltyData = null;
-    const modal = bootstrap.Modal.getInstance(document.getElementById('penaltyModal'));
-    if (modal) modal.hide();
-    showToast("⚠️ Tap-out cancelled. Passenger remains boarded.");
-}
-
-function showPenaltyReceipt(passenger, actualDrop, penalty, paymentMethod) {
-    document.getElementById('rcpt-date').innerText = new Date().toLocaleString('en-IN');
-    document.getElementById('rcpt-tkt').innerText = passenger.ticketId;
-    document.getElementById('rcpt-seat').innerText = passenger.seat;
-    document.getElementById('rcpt-pickup').innerText = passenger.pickup;
-    document.getElementById('rcpt-actual').innerText = actualDrop;
-    document.getElementById('rcpt-amt').innerText = `₹${penalty.amount}`;
-    document.getElementById('rcpt-method').innerText = paymentMethod;
-
-    document.getElementById('rcpt-breakdown').innerHTML = `
-        <div style="margin-top:2px;">(Booked Drop: ${passenger.drop})</div>
-        <div style="margin-top:2px;">+${penalty.extraStops} stops, +${penalty.extraKm}km</div>
-    `;
-
-    const modal = new bootstrap.Modal(document.getElementById('receiptModal'));
-    modal.show();
 }
 function startScanner() {
     if (scannerActive) { stopScanner(); return; }
@@ -866,7 +837,18 @@ async function handleQRScan(raw) {
     let ticketId = raw.trim().toUpperCase();
     if (ticketId.startsWith('TKT:')) ticketId = ticketId.split('\n')[0].replace('TKT:', '').trim();
     stopScanner();
-    await boardByTicket(ticketId);
+    
+    let cachedPassengers = allPassengersCache.filter(p => p.ticketId === ticketId);
+    if (cachedPassengers.length === 0) {
+        // Unknown, attempt board anyway to check DB
+        await boardByTicket(ticketId);
+    } else if (cachedPassengers.some(p => p.status === 'Booked')) {
+        await boardByTicket(ticketId);
+    } else if (cachedPassengers.some(p => p.status === 'Boarded')) {
+        await checkoutTicket(ticketId);
+    } else {
+        alert('⚠️ Ticket is already Dropped or Cancelled.');
+    }
 }
 
 // =============================================
