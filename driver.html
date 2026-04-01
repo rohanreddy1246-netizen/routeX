@@ -358,6 +358,18 @@
             font-weight: 800 !important;
         }
 
+        /* Overstay: more aggressive blinking and orange tint */
+        @keyframes blink-overstay {
+            0%, 100% { background: rgba(220,38,38,1); box-shadow: 0 0 14px rgba(220,38,38,0.9); }
+            50%       { background: rgba(220,38,38,0.1); box-shadow: none; }
+        }
+        .seat-btn.overstay-alert {
+            animation: blink-overstay 0.5s infinite !important;
+            border: 2px solid red !important;
+            color: #fff !important;
+            font-weight: 900 !important;
+        }
+
         .seat-info-box {
             background: rgba(124,109,255,0.06);
             border: 1px solid rgba(124,109,255,0.15);
@@ -517,6 +529,14 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--bg-card-2); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* === PRINT: isolate receipt === */
+        @media print {
+            body > *:not(#receiptModal) { display: none !important; }
+            #receiptModal { display: block !important; position: static !important; }
+            #receiptModal .modal-dialog { box-shadow: none !important; }
+            #receiptModal .modal-footer { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -693,9 +713,19 @@
             </div>
         </div>
     </div>
-
     <!-- === RIGHT === -->
     <div class="col-right">
+
+        <!-- OVERSTAY ALERTS (Dynamically shown) -->
+        <div class="card" id="overstayAlertCard" style="display:none; border-color:var(--red); background:rgba(220, 38, 38, 0.05);">
+            <div class="card-header" style="border-bottom-color:rgba(220, 38, 38, 0.1);">
+                <div class="card-icon" style="background:var(--red);color:#fff;">⚠️</div>
+                <div class="card-title" style="color:var(--red);">Overstay Warnings</div>
+            </div>
+            <div id="overstayList" style="padding-top:10px; font-size:0.85rem;">
+                <!-- Populated via JS -->
+            </div>
+        </div>
 
         <!-- Route Progress -->
         <div class="card">
@@ -728,6 +758,110 @@
             <div class="route-track mb-3" id="stopList"></div>
 
             <button class="btn-next" onclick="nextStop()">➡ Advance to Next Stop</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Penalty Payment Modal -->
+<div class="modal fade" id="penaltyModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;">
+            <div class="modal-header" style="border-bottom:none;padding:24px 24px 0;">
+                <h5 class="modal-title" style="color:var(--red);font-weight:700;">⚠️ Stop Mismatch: Extra Fare Required</h5>
+            </div>
+            <div class="modal-body" style="padding:24px;">
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">
+                    This passenger has travelled past their booked destination. Please collect the revised fare difference before dropping them.
+                </p>
+                
+                <div style="background:var(--bg-card-2);border:1px solid var(--border-soft);border-radius:12px;padding:16px;margin-bottom:20px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
+                        <span style="color:var(--text-muted);">Ticket ID</span>
+                        <strong id="pm-ticket" style="color:var(--text);font-family:monospace;">—</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
+                        <span style="color:var(--text-muted);">Booked Drop</span>
+                        <strong id="pm-booked-drop" style="color:var(--text);">—</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:0.85rem;">
+                        <span style="color:var(--text-muted);">Requested Drop</span>
+                        <strong id="pm-actual-drop" style="color:var(--text);">—</strong>
+                    </div>
+                    
+                    <!-- Breakdown section -->
+                    <div id="pm-breakdown" style="border-top:1px dashed var(--border-soft);padding-top:12px;margin-bottom:12px;font-size:0.8rem;color:var(--text-muted);">
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft);padding-top:12px;">
+                        <span style="color:var(--text);font-weight:600;">Extra Charge</span>
+                        <strong id="pm-amount" style="color:var(--red);font-size:1.4rem;">₹0</strong>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <button class="btn btn-outline-success" onclick="confirmPenalty('Cash')" style="padding:12px;font-weight:600;">💵 Paid Cash</button>
+                    <button class="btn btn-outline-primary" onclick="confirmPenalty('Online')" style="padding:12px;font-weight:600;">📱 Paid Online</button>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:none;padding:0 24px 24px;">
+                <button type="button" class="btn btn-dark w-100" onclick="cancelPenalty()" style="padding:10px;font-weight:500;">Cancel Check-out</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="background:#fff;border-radius:0;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <!-- Thermal Receipt Design -->
+            <div id="thermalReceipt" style="padding:20px;font-family:'Courier New',Courier,monospace;color:#000;font-size:0.85rem;line-height:1.4;position:relative;">
+                <div style="text-align:center;border-bottom:1px dashed #000;padding-bottom:10px;margin-bottom:15px;">
+                    <h4 style="margin:0;font-weight:bold;letter-spacing:1px;font-size:1.2rem;">RouteX</h4>
+                    <div style="font-size:0.75rem;">OVERSTAY RECEIPT</div>
+                    <div style="font-size:0.75rem;" id="rcpt-date"></div>
+                </div>
+                
+                <div style="margin-bottom:15px;">
+                    <div style="display:flex;justify-content:space-between;"><span>TKT:</span><strong id="rcpt-tkt"></strong></div>
+                    <div style="display:flex;justify-content:space-between;"><span>SEAT:</span><strong id="rcpt-seat"></strong></div>
+                </div>
+
+                <div style="margin-bottom:15px;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:10px 0;">
+                    <div style="display:flex;justify-content:space-between;">
+                        <span style="width:40px;">FROM:</span><strong id="rcpt-pickup" style="text-align:right;"></strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:4px;">
+                        <span style="width:40px;">TO:</span><strong id="rcpt-actual" style="text-align:right;"></strong>
+                    </div>
+                    <div style="font-size:0.7rem;color:#444;margin-top:6px;font-style:italic;" id="rcpt-breakdown">
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>EXTRA FARE</span>
+                    <strong style="font-size:1.2rem;" id="rcpt-amt"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-top:5px;">
+                    <span>PAYMENT</span>
+                    <strong id="rcpt-method"></strong>
+                </div>
+
+                <div style="text-align:center;margin-top:20px;font-size:0.75rem;">
+                    <div>* * * Thank You * * *</div>
+                    <div>Have a safe journey</div>
+                </div>
+                <!-- Watermark -->
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%) rotate(-30deg);font-size:3rem;opacity:0.08;font-weight:bold;pointer-events:none;color:#000;">
+                    PAID
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="padding:10px;background:#f8f9fa;border-top:1px solid #ddd;display:flex;gap:10px;">
+                <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary flex-fill" onclick="window.print()">🖨️ Print</button>
+            </div>
         </div>
     </div>
 </div>
