@@ -352,14 +352,21 @@
              50% { background: #fef3c7; box-shadow: 0 0 4px rgba(245, 158, 11, 0.1); border-color: #f59e0b; }
         }
         @keyframes anim-overstay-red {
-             0%, 100% { background: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.7); border: 2px solid #ef4444; }
-             50% { background: #fee2e2; box-shadow: 0 0 4px rgba(239, 68, 68, 0.2); border-color: #b91c1c; }
+             0%, 100% { background: #dc2626; box-shadow: 0 0 15px rgba(220, 38, 38, 0.8); border: 3px solid #dc2626; transform: scale(1.05); }
+             50% { background: #fee2e2; box-shadow: 0 0 5px rgba(220, 38, 38, 0.2); border-color: #991b1b; transform: scale(1); }
         }
 
         .seat-btn.dropping-next {
-            animation: anim-dropping-soon 1s infinite !important;
+            animation: anim-dropping-soon 1.2s infinite !important;
             color: #78350f !important;
             font-weight: 800 !important;
+        }
+
+        .seat-btn.overstaying {
+            animation: anim-overstay-red 0.8s infinite !important;
+            color: #fff !important;
+            font-weight: 800 !important;
+            z-index: 10;
         }
 
         .seat-info-box {
@@ -422,24 +429,36 @@
             color: var(--accent-light);
         }
 
-        /* === ROUTE PANEL === */
-        .route-track { position: relative; padding-left: 24px; }
-        .route-track::before {
-            content: '';
-            position: absolute; left: 6px; top: 6px; bottom: 6px;
-            width: 2px;
-            background: linear-gradient(to bottom, var(--green), var(--accent), rgba(255,255,255,0.08));
+        /* === RECEIPT & WATERMARK === */
+        .receipt-container {
+            position: relative; overflow: hidden;
+            background: #fff; color: #333;
+            max-width: 320px; margin: 0 auto;
+            border-radius: 4px; padding: 15px 18px 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            font-family: 'Courier New', Courier, monospace;
+            border-top: 6px solid #16a34a;
         }
-        .stop-node { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; position: relative; }
-        .stop-dot {
-            width: 14px; height: 14px; border-radius: 50%;
-            border: 2px solid; flex-shrink: 0;
-            position: absolute; left: -21px; top: 1px;
+        .paid-watermark {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-25deg);
+            font-size: 5rem; font-weight: 900;
+            color: rgba(22, 163, 74, 0.12);
+            pointer-events: none; z-index: 0;
+            border: 8px solid rgba(22, 163, 74, 0.12);
+            padding: 10px 20px; border-radius: 12px;
+            text-transform: uppercase; letter-spacing: 5px;
         }
-        .stop-node.done     .stop-dot { background: var(--green);  border-color: var(--green);   box-shadow: 0 0 8px rgba(34,211,160,0.4); }
-        .stop-node.current  .stop-dot { background: var(--accent); border-color: var(--accent-light); box-shadow: 0 0 12px var(--accent-glow); animation: pulse-stop 2s infinite; }
-        .stop-node.upcoming .stop-dot { background: transparent;   border-color: rgba(255,255,255,0.2); }
-        @keyframes pulse-stop { 0%,100% { box-shadow: 0 0 12px var(--accent-glow); } 50% { box-shadow: 0 0 24px rgba(124,109,255,0.6); } }
+        .receipt-dashed { border-top: 1px dashed #ccc; margin: 8px 0; }
+        .receipt-row { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; position: relative; z-index: 1; }
+        .receipt-label { color: #666; font-weight: 600; text-transform: uppercase; font-size: 0.65rem; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #penaltyReceiptContent, #penaltyReceiptContent * { visibility: visible; }
+            #penaltyReceiptContent { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: 1px solid #eee; }
+            .no-print { display: none !important; }
+        }
 
         .stop-label { font-size: 0.83rem; }
         .stop-node.done     .stop-label { color: var(--green); }
@@ -553,6 +572,35 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: var(--bg-card-2); }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+        /* === DESTINATION REPORT SPECIFIC === */
+        .report-summary-card {
+            background: linear-gradient(135deg, #ffffff, #f9f9ff);
+            border-radius: 16px; border: 1px solid var(--border-soft);
+            padding: 20px; color: var(--text);
+        }
+        .report-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0;
+        }
+        .report-stat-box {
+            background: var(--bg-base); padding: 12px; border-radius: 12px;
+            border: 1px solid var(--border-soft); text-align: center;
+        }
+        .report-stat-val { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+        .report-stat-lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+        
+        .on-board-warning {
+            background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px; padding: 12px; margin-top: 15px; color: var(--red);
+            font-size: 0.8rem; display: flex; align-items: center; gap: 10px;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            .modal-content { border: none !important; box-shadow: none !important; }
+            .report-summary-card { border: 1px dashed #000 !important; border-radius: 0 !important; }
+            body { background: white !important; }
+        }
     </style>
 </head>
 <body>
@@ -733,16 +781,6 @@
     <!-- === RIGHT === -->
     <div class="col-right">
 
-        <!-- OVERSTAY ALERTS (Dynamically shown) -->
-        <div class="card" id="overstayAlertCard" style="display:none; border-color:var(--red); background:rgba(220, 38, 38, 0.05);">
-            <div class="card-header" style="border-bottom-color:rgba(220, 38, 38, 0.1);">
-                <div class="card-icon" style="background:var(--red);color:#fff;">⚠️</div>
-                <div class="card-title" style="color:var(--red);">Overstay Warnings</div>
-            </div>
-            <div id="overstayList" style="padding-top:10px; font-size:0.85rem;">
-                <!-- Populated via JS -->
-            </div>
-        </div>
 
         <!-- Route Progress -->
         <div class="card">
@@ -766,15 +804,24 @@
             <div class="next-stop-card">
             <div class="label">Next Stop</div>
             <div class="stop-name" id="nextStop">Loading...</div>
-            <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,159,183,0.15);">
-                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Dropping Here</div>
-                <div id="droppingNext" style="font-weight:700; color:var(--red); font-size:1.1rem; letter-spacing:1px;">No Drops</div>
+            <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div style="background:rgba(245,158,11,0.05); border-left:3px solid #f59e0b; padding:8px; border-radius:4px;">
+                        <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Next Drops</div>
+                        <div id="droppingNext" style="font-weight:800; color:#b45309; font-size:1.1rem;">None</div>
+                    </div>
+                    <div style="background:rgba(220,38,38,0.05); border-left:3px solid #dc2626; padding:8px; border-radius:4px;">
+                        <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Overstays</div>
+                        <div id="overstayingNow" style="font-weight:800; color:#dc2626; font-size:1.1rem;">None</div>
+                    </div>
+                </div>
             </div>
         </div>
 
             <div class="route-track mb-3" id="stopList"></div>
 
-            <button class="btn-next" onclick="nextStop()">➡ Advance to Next Stop</button>
+            <button class="btn-next mb-2" id="nextBtn" onclick="nextStop()">➡ Advance to Next Stop</button>
+            <button class="btn-next" id="endTripBtn" onclick="showDestinationReport()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);">🏁 End Journey & Summary</button>
             <div id="overstayContainer" class="card overstay-container mt-3">
                 <div class="overstay-header">
                     <span style="font-size: 1.1rem;">🚨</span> Overstay Alert
@@ -847,64 +894,62 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background: transparent; border: none;">
             <div class="modal-body p-0">
-                <div class="receipt-container paid" id="penaltyReceiptContent">
-                    <div class="paid-stamp">PAID</div>
-                    <div class="receipt-header">
-                        <div class="receipt-logo">RouteX BUS</div>
-                        <div style="font-size: 0.65rem; color: #666; margin-top: 4px;">OFFICIAL PENALTY RECEIPT</div>
-                        <div style="font-size: 0.6rem; color: #999;" id="receiptTimestamp">01-Apr-2026 10:30 AM</div>
-                    </div>
+                <div class="receipt-container" id="penaltyReceiptContent">
+                    <div class="paid-watermark">PAID</div>
                     
-                    <div class="receipt-row">
-                        <span>Ticket ID:</span>
-                        <strong id="receiptTicketId">—</strong>
-                    </div>
-                    <div class="receipt-row">
-                        <span>Passenger:</span>
-                        <strong id="receiptPassenger">—</strong>
-                    </div>
-                    
-                    <div class="receipt-divider"></div>
-                    
-                    <div class="receipt-row">
-                        <span>Pickup:</span>
-                        <strong id="receiptPickup">—</strong>
-                    </div>
-                    <div class="receipt-row">
-                        <span>Original Drop:</span>
-                        <strong id="receiptOriginalDrop">—</strong>
-                    </div>
-                    <div class="receipt-row" style="color: #d32f2f;">
-                        <span>Actual Drop:</span>
-                        <strong id="receiptActualDrop">—</strong>
+                    <div class="text-center mb-2" style="position: relative; z-index: 1;">
+                        <div style="font-weight: 900; font-size: 1.1rem; letter-spacing: 1px;">ROUTEX OFFICIAL</div>
+                        <div style="font-size: 0.6rem; color: #666;">OVERSTAY PENALTY RECEIPT</div>
+                        <div style="font-size: 0.55rem; color: #999; margin-top: 2px;" id="receiptTimestamp">--</div>
                     </div>
 
-                    <div class="receipt-row" style="font-size: 0.6rem; color: #666; margin-top: 4px;">
-                        <span>Extra Distance:</span>
-                        <span id="receiptBreakdown">—</span>
-                    </div>
-                    
-                    <div class="receipt-divider"></div>
-                    
+                    <div class="receipt-dashed"></div>
+
                     <div class="receipt-row">
-                        <span>Status:</span>
-                        <strong>Penalty Charged</strong>
+                        <span class="receipt-label">Ticket ID:</span>
+                        <strong id="receiptTicketId">--</strong>
                     </div>
                     <div class="receipt-row">
-                        <span>Method:</span>
-                        <strong id="receiptMethod">—</strong>
+                        <span class="receipt-label">Passenger:</span>
+                        <strong id="receiptPassenger">--</strong>
                     </div>
-                    
-                    <div class="receipt-total">
-                        <span>TOTAL PAID:</span>
-                        <span id="receiptTotalAmount">₹0</span>
+
+                    <div class="receipt-dashed"></div>
+
+                    <div class="mb-1" style="position: relative; z-index: 1;">
+                        <div class="receipt-label" style="font-size: 0.6rem;">Route Tracking:</div>
+                        <div style="font-size: 0.75rem; margin-top: 2px;">
+                            <span style="color: #666;">Pickup:</span> <span id="receiptPickup" style="font-weight: 700;">--</span>
+                        </div>
+                        <div style="font-size: 0.75rem;">
+                            <span style="color: #666;">Booked Drop:</span> <span id="receiptOriginalDrop" style="font-weight: 700;">--</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: #dc2626; margin-top: 1px;">
+                            <span style="font-weight: 700;">OVERSTAYED TO:</span> <span id="receiptActualDrop" style="font-weight: 900; text-decoration: underline;">--</span>
+                        </div>
                     </div>
-                    
-                    <div style="text-align: center; margin-top: 20px; font-size: 0.6rem; color: #666;">
-                        *** Thank you for choosing RouteX ***<br>
-                        Digital Payment Confirmation System
+
+                    <div class="receipt-dashed"></div>
+
+                    <div class="p-2 mb-2" style="background: #f8fafc; border-radius: 4px; font-size: 0.65rem; position: relative; z-index: 1;">
+                        <span class="receipt-label">Penalty Breakdown:</span>
+                        <div id="receiptBreakdown" style="font-weight: 600; color: #334155;">--</div>
+                        <div style="margin-top: 2px; color: #64748b;">Paid via <span id="receiptMethod" style="font-weight: 700;">CASH</span></div>
+                    </div>
+
+                    <div class="receipt-row align-items-center mb-0">
+                        <span style="font-size: 0.85rem; font-weight: 900;">TOTAL PAID:</span>
+                        <span id="receiptTotalAmount" style="font-size: 1.3rem; font-weight: 950; color: #16a34a;">₹0</span>
+                    </div>
+
+                    <div class="receipt-dashed"></div>
+
+                    <div class="text-center no-print" style="position: relative; z-index: 1;">
+                        <p style="font-size: 0.55rem; color: #999; margin-bottom: 8px;">Keep this ticket for verification.</p>
+                        <button onclick="window.print()" class="btn btn-dark btn-sm w-100" style="border-radius: 8px; font-weight: 700; padding: 6px; font-size: 0.75rem;">🖨️ Print Ticket</button>
                     </div>
                 </div>
+            </div>
             </div>
             <div class="modal-footer justify-content-center" style="border: none; padding-top: 20px;">
                 <button type="button" class="btn btn-light" onclick="window.print()" style="border-radius: 10px; font-weight: 600;">🖨 Print</button>
@@ -915,111 +960,74 @@
 </div>
 </div>
 
-<!-- Penalty Payment Modal -->
-<div class="modal fade" id="penaltyModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;">
-            <div class="modal-header" style="border-bottom:none;padding:24px 24px 0;">
-                <h5 class="modal-title" style="color:var(--red);font-weight:700;">⚠️ Stop Mismatch: Extra Fare Required</h5>
-            </div>
-            <div class="modal-body" style="padding:24px;">
-                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:16px;">
-                    This passenger has travelled past their booked destination. Please collect the revised fare difference before dropping them.
-                </p>
-                
-                <div style="background:var(--bg-card-2);border:1px solid var(--border-soft);border-radius:12px;padding:16px;margin-bottom:20px;">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-                        <span style="color:var(--text-muted);">Ticket ID</span>
-                        <strong id="pm-ticket" style="color:var(--text);font-family:monospace;">—</strong>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;">
-                        <span style="color:var(--text-muted);">Booked Drop</span>
-                        <strong id="pm-booked-drop" style="color:var(--text);">—</strong>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:0.85rem;">
-                        <span style="color:var(--text-muted);">Requested Drop</span>
-                        <strong id="pm-actual-drop" style="color:var(--text);">—</strong>
-                    </div>
-                    
-                    <!-- Breakdown section -->
-                    <div id="pm-breakdown" style="border-top:1px dashed var(--border-soft);padding-top:12px;margin-bottom:12px;font-size:0.8rem;color:var(--text-muted);">
-                    </div>
-
-                    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-soft);padding-top:12px;">
-                        <span style="color:var(--text);font-weight:600;">Extra Charge</span>
-                        <strong id="pm-amount" style="color:var(--red);font-size:1.4rem;">₹0</strong>
-                    </div>
-                </div>
-
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                    <button class="btn btn-outline-success" onclick="confirmPenalty('Cash')" style="padding:12px;font-weight:600;">💵 Paid Cash</button>
-                    <button class="btn btn-outline-primary" onclick="confirmPenalty('Online')" style="padding:12px;font-weight:600;">📱 Paid Online</button>
-                </div>
-            </div>
-            <div class="modal-footer" style="border-top:none;padding:0 24px 24px;">
-                <button type="button" class="btn btn-dark w-100" onclick="cancelPenalty()" style="padding:10px;font-weight:500;">Cancel Check-out</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Receipt Modal -->
-<div class="modal fade" id="receiptModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content" style="background:#fff;border-radius:0;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-            <!-- Thermal Receipt Design -->
-            <div id="thermalReceipt" style="padding:20px;font-family:'Courier New',Courier,monospace;color:#000;font-size:0.85rem;line-height:1.4;position:relative;">
-                <div style="text-align:center;border-bottom:1px dashed #000;padding-bottom:10px;margin-bottom:15px;">
-                    <h4 style="margin:0;font-weight:bold;letter-spacing:1px;font-size:1.2rem;">RouteX</h4>
-                    <div style="font-size:0.75rem;">OVERSTAY RECEIPT</div>
-                    <div style="font-size:0.75rem;" id="rcpt-date"></div>
-                </div>
-                
-                <div style="margin-bottom:15px;">
-                    <div style="display:flex;justify-content:space-between;"><span>TKT:</span><strong id="rcpt-tkt"></strong></div>
-                    <div style="display:flex;justify-content:space-between;"><span>SEAT:</span><strong id="rcpt-seat"></strong></div>
-                </div>
-
-                <div style="margin-bottom:15px;border-top:1px dashed #000;border-bottom:1px dashed #000;padding:10px 0;">
-                    <div style="display:flex;justify-content:space-between;">
-                        <span style="width:40px;">FROM:</span><strong id="rcpt-pickup" style="text-align:right;"></strong>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;margin-top:4px;">
-                        <span style="width:40px;">TO:</span><strong id="rcpt-actual" style="text-align:right;"></strong>
-                    </div>
-                    <div style="font-size:0.7rem;color:#444;margin-top:6px;font-style:italic;" id="rcpt-breakdown">
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span>EXTRA FARE</span>
-                    <strong style="font-size:1.2rem;" id="rcpt-amt"></strong>
-                </div>
-                <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-top:5px;">
-                    <span>PAYMENT</span>
-                    <strong id="rcpt-method"></strong>
-                </div>
-
-                <div style="text-align:center;margin-top:20px;font-size:0.75rem;">
-                    <div>* * * Thank You * * *</div>
-                    <div>Have a safe journey</div>
-                </div>
-                <!-- Watermark -->
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%, -50%) rotate(-30deg);font-size:3rem;opacity:0.08;font-weight:bold;pointer-events:none;color:#000;">
-                    PAID
-                </div>
-            </div>
-            
-            <div class="modal-footer" style="padding:10px;background:#f8f9fa;border-top:1px solid #ddd;display:flex;gap:10px;">
-                <button type="button" class="btn btn-secondary flex-fill" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary flex-fill" onclick="window.print()">🖨️ Print</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Toast Container -->
 <div id="toast-host"></div>
+
+<!-- DESTINATION REPORT MODAL -->
+<div class="modal fade no-print" id="destinationReportModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
+            <div class="modal-header" style="background: var(--accent); color: white; border: none; padding: 20px;">
+                <h5 class="modal-title" style="font-family: 'Outfit'; font-weight: 700;">🏁 Destination Report Summary</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="report-summary-card">
+                    <div class="text-center mb-4">
+                        <div style="font-size: 2.5rem; margin-bottom: 5px;">🚌</div>
+                        <h4 id="repBusNum" style="font-weight: 800; margin: 0; color: var(--accent);">—</h4>
+                        <p id="repRoute" class="text-muted small">Loading trip details…</p>
+                    </div>
+
+                    <div class="report-grid">
+                        <div class="report-stat-box">
+                            <div class="report-stat-val" id="repTotalPax">0</div>
+                            <div class="report-stat-lbl">Total Passengers</div>
+                        </div>
+                        <div class="report-stat-box">
+                            <div class="report-stat-val" id="repNormalRevenue" style="color:var(--accent)">₹0</div>
+                            <div class="report-stat-lbl">Normal Revenue</div>
+                        </div>
+                        <div class="report-stat-box">
+                            <div class="report-stat-val" id="repPenaltyRevenue" style="color:var(--red)">₹0</div>
+                            <div class="report-stat-lbl">Penalty Revenue</div>
+                        </div>
+                        <div class="report-stat-box">
+                            <div class="report-stat-val" id="repTotalRevenue" style="color:var(--green); font-weight: 850;">₹0</div>
+                            <div class="report-stat-lbl">Grand Total</div>
+                        </div>
+                        <div class="report-stat-box" style="grid-column: span 2;">
+                            <div class="report-stat-val" id="repDuration">0h 0m</div>
+                            <div class="report-stat-lbl">Trip Duration</div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Penalty List -->
+                    <div class="mt-4" id="penaltySummarySection" style="display: none;">
+                        <h6 class="fw-bold mb-2 ps-1" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">📋 Penalty / Extra Collections</h6>
+                        <div id="penaltyLogList" style="background: rgba(0,0,0,0.02); border-radius: 12px; border: 1px solid var(--border-soft); padding: 5px;">
+                            <!-- Items will be injected here -->
+                        </div>
+                    </div>
+
+                    <div id="onBoardWarning" class="on-board-warning d-none">
+                        <span>⚠️</span>
+                        <div>
+                            <strong style="display: block;">Incomplete Record!</strong>
+                            <span id="onBoardCount">0</span> passengers are still "Boarded".
+                        </div>
+                        <button class="btn btn-sm btn-danger ms-auto" onclick="dropAllAndFinalize()">Drop All</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: none; padding: 20px;">
+                <button type="button" class="btn btn-outline-secondary flex-fill" onclick="window.print()" style="font-weight: 600;">🖨️ Print Final Report</button>
+                <button type="button" class="btn btn-success flex-fill" onclick="finishTripAndLogout()" style="background: var(--green); font-weight: 600; padding: 12px;">✅ Finish & Register Trip</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
