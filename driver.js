@@ -1191,3 +1191,51 @@ function finishTripAndLogout() {
         window.location.href = 'index.html';
     }
 }
+
+// =============================================
+// NEW DRIVER PANEL FEATURES (SCHEDULE & FORCE END)
+// =============================================
+
+function showScheduleModal() {
+    if (!assignedBus || !driverStops || driverStops.length === 0) {
+        alert("No route assigned.");
+        return;
+    }
+
+    document.getElementById('schedBusNum').textContent = assignedBus.number;
+    const scheduleListEl = document.getElementById('scheduleList');
+    
+    // Generate a simulated schedule starting from current hour
+    let html = '';
+    const now = new Date();
+    // Round to nearest hour
+    now.setMinutes(0);
+    now.setSeconds(0);
+
+    driverStops.forEach((stop, index) => {
+        // Add 30 mins for each stop
+        const eta = new Date(now.getTime() + (index * 30 * 60000));
+        const timeStr = eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        let statusHtml = '';
+        if (index < currentStopIndex) {
+            statusHtml = '<span class="badge bg-success ms-2">✓ Passed</span>';
+        } else if (index === currentStopIndex) {
+            statusHtml = '<span class="badge bg-primary ms-2">Current</span>';
+        }
+
+        html += `
+            <div class="stop-item ${index < currentStopIndex ? 'done' : index === currentStopIndex ? 'current' : 'upcoming'}">
+                <div class="stop-dot"></div>
+                <div style="display: flex; justify-content: space-between; width: 100%;">
+                    <span><strong>${stop}</strong> ${statusHtml}</span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem; font-family: monospace;">${timeStr}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    scheduleListEl.innerHTML = html;
+    const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+    modal.show();
+}
