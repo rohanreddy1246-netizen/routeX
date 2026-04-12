@@ -14,16 +14,22 @@
         :root {
             --accent:       #373F51;
             --accent-light: #545D7A;
-            --accent-glow:  rgba(55,63,81,0.15);
+            --accent-glow:  rgba(55,63,81,0.25);
             --green:        #16a34a;
             --amber:        #ea580c;
             --red:          #dc2626;
             --blue:         #2563eb;
-            --bg-base:      #f8f7ff;
-            --bg-card:      #ffffff;
-            --bg-card-2:    #f1f5f9;
-            --border:       rgba(79,70,229,0.2);
-            --border-soft:  rgba(0,0,0,0.06);
+            --primary:      #4f46e5;
+            --primary-light:#818cf8;
+            /* Glass tokens */
+            --bg-base:      transparent;
+            --bg-card:      rgba(255,255,255,0.60);
+            --bg-card-2:    rgba(255,255,255,0.40);
+            --glass-blur:   22px;
+            --glass-border: rgba(255,255,255,0.38);
+            --glass-glow:   inset 0 1px 0 rgba(255,255,255,0.65);
+            --border:       rgba(99,102,241,0.22);
+            --border-soft:  rgba(255,255,255,0.25);
             --text:         #1e1b4b;
             --text-muted:   #475569;
             --text-dim:     #64748b;
@@ -31,7 +37,15 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--bg-base);
+            /* Premium vivid mesh gradient */
+            background:
+                radial-gradient(ellipse 75% 65% at 8% 5%,   rgba(79, 70, 229, 0.32) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 55% at 92% 8%,  rgba(124, 58, 237, 0.25) 0%, transparent 60%),
+                radial-gradient(ellipse 70% 60% at 85% 88%,  rgba(16, 185, 129, 0.22) 0%, transparent 60%),
+                radial-gradient(ellipse 55% 50% at 12% 88%,  rgba(37, 99, 235, 0.20) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 45% at 50% 50%,  rgba(99, 102, 241, 0.10) 0%, transparent 70%),
+                linear-gradient(135deg, #dbeafe 0%, #ede9fe 35%, #d1fae5 65%, #e0f2fe 100%);
+            background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
@@ -133,14 +147,19 @@
         /* === CARD === */
         .card {
             background: var(--bg-card);
-            border: 1px solid var(--border);
+            backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+            -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(170%);
+            border: 1px solid var(--glass-border);
             border-radius: 18px;
             padding: 20px;
-            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(79,70,229,0.12), var(--glass-glow);
             margin-bottom: 16px;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
-        .card:hover { border-color: rgba(124,109,255,0.3); }
+        .card:hover {
+            border-color: rgba(124,109,255,0.4);
+            box-shadow: 0 12px 40px rgba(79,70,229,0.18), var(--glass-glow);
+        }
         .card-header {
             display: flex; align-items: center; gap: 10px;
             margin-bottom: 16px;
@@ -662,6 +681,10 @@
                 <div class="bus-chip-value" id="driverRoute" style="color:var(--primary);font-size:0.82rem;">—</div>
                 <div class="bus-chip-sub"><span id="busStatusBadge" class="badge-pill badge-boarded">Active</span></div>
             </div>
+
+            <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="showScheduleModal()" style="border-radius: 10px; font-weight: 600;">
+                📅 View Today's Schedule
+            </button>
         </div>
 
         <!-- Seat Map -->
@@ -828,6 +851,29 @@
                 </div>
                 <div id="overstayList" class="overstay-list">
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCHEDULE MODAL -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-soft);">
+                <h5 class="modal-title" style="color: var(--primary); font-family: 'Outfit'; font-weight: 700;">📅 Today's Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Scheduled stops and estimated arrival times for <strong style="color: var(--text);" id="schedBusNum">Bus</strong>.
+                </div>
+                <div class="route-track" id="scheduleList" style="margin-top: 10px; max-height: 400px; overflow-y: auto;">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-soft);">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal" style="border-radius: 10px;">Close Schedule</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,18 @@
+{
+  "ticketId": "RTX20241225001",
+  "name": "Rahul Sharma",
+  "age": 28,
+  "gender": "Male",
+  "seats": ["A1", "A2"],
+  "busNumber": "BUS-DEL-001",
+  "busType": "AC Sleeper",
+  "pickup": "Delhi ISBT Kashmere Gate",
+  "drop": "Mumbai Dadar Central",
+  "date": "2024-12-25",
+  "boardingTime": "22:30",
+  "fare": 2500,
+  "email": "rahul.sharma@email.com",
+  "phone": "+91-9876543210",
+  "status": "Confirmed",
+  "bookingDate": "2024-12-20"
+}

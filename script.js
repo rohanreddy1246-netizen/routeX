@@ -909,17 +909,44 @@ function showUserDashboard() {
         // =============================================
         // MY BOOKINGS PAGE
         // =============================================
+        // Active filter state
+        let _bookingFilter = 'all';
+
+        function setBookingFilter(filter) {
+            _bookingFilter = filter;
+            // Update active styling on tabs
+            document.querySelectorAll('.booking-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+            populateMyBookings();
+        }
+        window.setBookingFilter = setBookingFilter;
+
         function populateMyBookings() {
             const container = document.getElementById('my-bookings-list');
             if (!container) return;
 
-            const bookings = userBookingsCache;
+            const today = new Date(); today.setHours(0,0,0,0);
+            let bookings = [...userBookingsCache];
+
+            if (_bookingFilter === 'upcoming') {
+                bookings = bookings.filter(b => {
+                    const d = new Date(b.date);
+                    return d >= today && b.status !== 'Boarded' && b.status !== 'Dropped' && b.status !== 'CANCELLED';
+                });
+            } else if (_bookingFilter === 'past') {
+                bookings = bookings.filter(b => {
+                    const d = new Date(b.date);
+                    return d < today || b.status === 'Boarded' || b.status === 'Dropped' || b.status === 'CANCELLED';
+                });
+            }
 
             if (bookings.length === 0) {
+                const labels = { all: 'No bookings yet.', upcoming: 'No upcoming bookings.', past: 'No past bookings.' };
                 container.innerHTML = `
             <div class="empty-bookings">
                 <div style="font-size:3rem;margin-bottom:12px;">🎫</div>
-                <p>No bookings yet. <a href="#" onclick="showPage('booking');return false;">Book your first ticket!</a></p>
+                <p>${labels[_bookingFilter] || 'No bookings found.'} <a href="#" onclick="showPage('booking');return false;">Book a ticket!</a></p>
             </div>`;
                 return;
             }

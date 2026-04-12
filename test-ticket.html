@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Ticket Generator</title>
+</head>
+<body>
+    <h1>Testing Ticket Generator Functions</h1>
+    <div id="test-output"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="ticket-generator.js"></script>
+
+    <script>
+        // Test booking data
+        const testBooking = {
+            ticketId: 'TEST123',
+            name: 'John Doe',
+            age: 25,
+            gender: 'Male',
+            seats: ['A1', 'A2'],
+            busNumber: 'BUS001',
+            busType: 'AC',
+            pickup: 'City Center',
+            drop: 'Airport',
+            date: '2024-12-25',
+            boardingTime: '10:00 AM',
+            fare: 1500,
+            email: 'john@example.com',
+            phone: '1234567890'
+        };
+
+        function runTests() {
+            const output = document.getElementById('test-output');
+            let results = '<h2>Test Results:</h2>';
+
+            try {
+                // Test numToWords
+                results += '<h3>numToWords Tests:</h3>';
+                results += '<p>1500: ' + numToWords(1500) + '</p>';
+                results += '<p>0: ' + numToWords(0) + '</p>';
+                results += '<p>123: ' + numToWords(123) + '</p>';
+
+                // Test sanitize
+                results += '<h3>sanitize Tests:</h3>';
+                results += '<p>sanitize("Hello & World"): ' + sanitize('Hello & World') + '</p>';
+
+                // Test buildTicketHTML
+                results += '<h3>buildTicketHTML Test:</h3>';
+                const html = buildTicketHTML(testBooking);
+                results += '<p>HTML generated successfully. Length: ' + html.length + ' characters</p>';
+
+                // Test generateTicketPDF
+                results += '<h3>generateTicketPDF Test:</h3>';
+                generateTicketPDF(testBooking);
+                results += '<p>PDF generation initiated</p>';
+
+                results += '<h3>All tests passed! ✅</h3>';
+
+            } catch (error) {
+                results += '<h3 style="color: red;">Error: ' + error.message + '</h3>';
+                console.error(error);
+            }
+
+            output.innerHTML = results;
+        }
+
+        // Run tests when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', runTests);
+        } else {
+            runTests();
+        }
+    </script>
+</body>
+</html>
