@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <body>
@@ -64,7 +65,18 @@
                         </div>
 
                         <div id="login-error" class="field-error mb-2"></div>
-                        <button type="submit" class="btn btn-primary w-100">🔐 Sign In</button>
+                        <button type="submit" class="btn btn-primary w-100 mb-3">🔐 Sign In</button>
+
+                        <!-- Google Sign-In -->
+                        <div class="text-center w-100 d-flex flex-column align-items-center">
+                            <div class="strike-through w-100 mb-3" style="position:relative; text-align:center;">
+                                <span style="background:var(--glass-bg-light); padding:0 10px; color:#6c757d; font-size:14px; position:relative; z-index:1;">Or continue with</span>
+                                <hr style="position:absolute; top:50%; margin:0; width:100%; border-top:1px solid #dee2e6; z-index:0;">
+                            </div>
+                            
+                            <!-- Google Sign-In Container (Rendered via JS) -->
+                            <div id="google-button-container" class="w-100 d-flex justify-content-center"></div>
+                        </div>
                     </form>
                     
                 </div>

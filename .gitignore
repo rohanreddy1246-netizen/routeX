@@ -1,5 +1,5 @@
 # Sensitive configuration — DO NOT commit API keys
-config.js
+# config.js
 
 # Dependencies
 node_modules/

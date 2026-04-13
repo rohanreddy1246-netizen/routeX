@@ -407,11 +407,104 @@ function goToDriver() {
 }
 
 // =============================================
+// GOOGLE SIGN-IN HANDLER
+// =============================================
+async function handleGoogleLogin(response) {
+    if (!response || !response.credential) {
+        console.error("Google Sign-In failed or missing credentials");
+        return;
+    }
+
+    try {
+        // Decode JWT payload
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const googleUser = JSON.parse(jsonPayload);
+        
+        console.log("📝 Google OAuth Payload:", googleUser.email);
+        
+        if (!LocalDB.isReady()) {
+            throw new Error('Database connection failed - Supabase client not available');
+        }
+
+        const email = googleUser.email;
+        const name = googleUser.name;
+        
+        let match = await LocalDB.findUserByEmail(email);
+        
+        if (!match) {
+            // Auto register the Google user as a 'user' (passenger)
+            console.log("🆕 New Google user. Registering automatically...");
+            const autoPass = 'GOOG_' + Math.random().toString(36).slice(-8);
+            const newUser = {
+                name: name,
+                email: email,
+                phone: '', 
+                password: autoPass,
+                role: 'user'
+            };
+            const { data, error } = await LocalDB.addUser(newUser);
+            if (error) throw error;
+            match = data || newUser;
+        }
+        
+        console.log('✅ Google Login successful! User:', match.email);
+        console.log('👤 User role:', match.role);
+        
+        currentUser = match;
+        sessionStorage.setItem('userSession', JSON.stringify(match));
+        
+        const errEl = document.getElementById('login-error');
+        if (errEl) errEl.textContent = '';
+
+        if (match.role === 'admin') {
+            window.location.href = 'admin.html';
+        } else if (match.role === 'driver') {
+            window.location.href = 'driver.html';
+        } else {
+            await fetchUserBookings();
+            showUserDashboard();
+            initChatbot();
+        }
+        
+    } catch (error) {
+        console.error("❌ Google Login error:", error);
+        const errEl = document.getElementById('login-error');
+        if (errEl) errEl.textContent = `❌ Google Sign-In failed: ${error.message}`;
+    }
+}
+
+// =============================================
 // USER LOGIN
 // =============================================
 function setupLoginForm() {
     const form = document.getElementById('login-form');
     if (!form) return;
+
+    // Explicitly render Google Button to ensure visibility
+    setTimeout(() => {
+        if (typeof google !== 'undefined' && google.accounts) {
+            google.accounts.id.initialize({
+                client_id: "887492660615-6fvhnir3lltpbh7gn3an3bgrutcc6ntu.apps.googleusercontent.com",
+                callback: handleGoogleLogin
+            });
+            const btnContainer = document.getElementById('google-button-container');
+            if (btnContainer) {
+                google.accounts.id.renderButton(btnContainer, { 
+                    theme: "outline", 
+                    size: "large", 
+                    width: 320,
+                    text: "continue_with" 
+                });
+            }
+        } else {
+            console.error("Google Identity Services script failed to load. Are you offline or blocking scripts?");
+        }
+    }, 500);
+
     form.addEventListener('submit', async e => {
         e.preventDefault();
         const credential = document.getElementById('login-email').value.trim();
