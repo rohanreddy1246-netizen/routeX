@@ -134,14 +134,66 @@
             margin: 0 auto;
             position: relative; z-index: 1;
         }
-        @media (max-width: 1200px) {
-            .main-grid { grid-template-columns: 280px 1fr; }
-            .col-right  { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+        /* Unbox columns to manipulate cards directly without touching HTML */
+        .col-left, .col-center, .col-right {
+            display: contents;
         }
+
+        /* --- REDUCE TOP ROW SIZE --- */
+        .col-left .card:nth-of-type(1), 
+        .col-center .card:nth-of-type(1), 
+        .col-center .card:nth-of-type(2) { padding: 20px; }
+
+        /* --- DESKTOP GRID PLACEMENT --- */
+        /* Row 1 cards */
+        #card-profile   { grid-column: 1 / 2; grid-row: 1; height: 100%; } 
+        #card-dashboard { grid-column: 2 / 3; grid-row: 1; height: 100%; } 
+        #card-boarding  { grid-column: 3 / 4; grid-row: 1; height: 100%; } 
+
+        /* Row 2: Grouped container for symmetry */
+        .middle-row-group {
+            grid-column: 2 / 4;
+            grid-row: 2;
+            display: flex;
+            gap: 16px;
+            height: 100%;
+        }
+        .middle-row-group > .card {
+            flex: 1;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Row 4: Manifest (full width bottom) */
+        #card-manifest { grid-column: 1 / 4; grid-row: 4; } 
+
+        /* --- TABLET --- */
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 1fr 1fr; }
+            .col-left .card:nth-of-type(1)   { grid-column: 1 / 2; grid-row: 1; } 
+            .col-center .card:nth-of-type(1) { grid-column: 2 / 3; grid-row: 1; } 
+            .col-center .card:nth-of-type(2) { grid-column: 1 / 3; grid-row: 2; } 
+            .col-left .card:nth-of-type(2)   { grid-column: 1 / 3; grid-row: 3; } 
+            .col-right .card:nth-of-type(1)  { grid-column: 1 / 3; grid-row: 4; } 
+            .col-right .card:nth-of-type(2)  { grid-column: 1 / 3; grid-row: 5; } 
+            .col-center .card:nth-of-type(3) { grid-column: 1 / 3; grid-row: 6; } 
+        }
+
+        /* --- MOBILE --- */
         @media (max-width: 768px) {
-            .main-grid { grid-template-columns: 1fr; }
-            .col-right { grid-column: span 1; grid-template-columns: 1fr; }
-            .col-left  { display: none; /* Keep left profile hidden on mobile to save space */ }
+            .main-grid { 
+                display: flex; 
+                flex-direction: column; 
+            }
+            .col-left .card:nth-of-type(1)   { order: 1; } /* Profile */
+            .col-center .card:nth-of-type(1) { order: 2; } /* Live Dash */
+            .col-center .card:nth-of-type(2) { order: 3; } /* Boarding */
+            .col-left .card:nth-of-type(2)   { order: 4; } /* Seat Layout */
+            .col-right .card:nth-of-type(1)  { order: 5; } /* Route Progress */
+            .col-right .card:nth-of-type(2)  { order: 6; } /* Overstay Alert */
+            .col-center .card:nth-of-type(3) { order: 7; } /* Manifest */
         }
 
         /* === CARD === */
@@ -244,19 +296,21 @@
             margin-bottom: 16px;
         }
         .stat-tile {
-            background: var(--bg-card-2);
+            background: #ffffff;
             border: 1px solid var(--border-soft);
-            border-radius: 14px;
-            padding: 14px 12px;
+            border-radius: 12px;
+            padding: 16px 12px;
             text-align: center;
             position: relative; overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; justify-content: center;
             transition: all 0.2s;
         }
         .stat-tile:hover { border-color: var(--border); transform: translateY(-2px); }
         .stat-tile::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0;
-            height: 2px;
+            height: 3px;
         }
         .stat-tile.green::before  { background: var(--green); }
         .stat-tile.amber::before  { background: var(--amber); }
@@ -267,7 +321,7 @@
 
         .stat-val {
             font-family: 'Outfit', sans-serif;
-            font-size: 2rem; font-weight: 800;
+            font-size: 2.2rem; font-weight: 800;
             line-height: 1;
         }
         .stat-tile.green  .stat-val { color: var(--green); }
@@ -277,7 +331,7 @@
         .stat-tile.red    .stat-val { color: var(--red); }
         .stat-tile.teal   .stat-val { color: #2dd4bf; }
 
-        .stat-lbl { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-lbl { font-size: 0.7rem; color: #666; margin-top: 8px; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; }
 
         /* === OCCUPANCY BAR === */
         .occ-bar-wrap { background: rgba(0,0,0,0.05); border-radius: 10px; height: 10px; overflow: hidden; }
@@ -322,14 +376,14 @@
         #qr-reader { border-radius: 12px; overflow: hidden; max-width: 280px; margin: 12px auto 0; }
 
         /* === SEAT MAP === */
-        .seat-map-wrap { max-width: 240px; margin: 0 auto; }
-        .seat-row-map { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
-        .row-num { font-size: 0.6rem; color: var(--text-muted); width: 12px; text-align: right; font-family:'JetBrains Mono',monospace; }
-        .seats-in-row { display: flex; gap: 3px; align-items: center; }
-        .aisle-gap { width: 10px; }
+        .seat-map-wrap { max-width: 180px; margin: 0 auto; }
+        .seat-row-map { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+        .row-num { font-size: 0.55rem; color: var(--text-muted); width: 10px; text-align: right; font-family:'JetBrains Mono',monospace; }
+        .seats-in-row { display: flex; gap: 2px; align-items: center; }
+        .aisle-gap { width: 8px; }
         .seat-btn {
-            width: 38px; height: 34px; border: none; border-radius: 7px;
-            font-size: 0.6rem; font-weight: 700; cursor: pointer;
+            width: 32px; height: 29px; border: none; border-radius: 5px;
+            font-size: 0.62rem; font-weight: 700; cursor: pointer;
             transition: all 0.15s; position: relative;
         }
         .seat-btn.available {
@@ -388,14 +442,31 @@
             z-index: 10;
         }
 
+        /* Seat map side-by-side layout */
+        .seat-map-container {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .seat-map-left { flex-shrink: 0; }
+        .seat-map-right {
+            flex: 1;
+            min-width: 0;
+        }
         .seat-info-box {
             background: rgba(124,109,255,0.06);
-            border: 1px solid rgba(124,109,255,0.15);
-            border-radius: 12px; padding: 12px;
-            font-size: 0.8rem; min-height: 50px; margin-top: 12px;
+            border: 1px dashed rgba(124,109,255,0.25);
+            border-radius: 14px; padding: 14px;
+            font-size: 0.8rem; min-height: 180px;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; text-align: center;
+            color: var(--text-muted);
         }
         .seat-info-box .pi-name { font-weight: 700; color: var(--text); font-size: 0.88rem; }
         .seat-info-box .pi-meta { color: var(--text-dim); margin-top: 3px; }
+        .seat-info-box .passenger-info-card { text-align: left; align-items: flex-start; width: 100%; }
+        .seat-info-box .passenger-info-card h6 { font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 10px; }
+        .seat-info-box .passenger-info-card p { font-size: 0.78rem; color: var(--text-dim); margin: 4px 0; }
 
         /* === PASSENGER TABLE === */
         .pax-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
@@ -536,6 +607,52 @@
             box-shadow: 0 0 10px var(--accent-glow);
         }
 
+        /* === COMPACT MIDDLE ROW OVERRIDES === */
+        /* Seat map card */
+        .col-left .card:nth-of-type(2) { padding: 14px 16px; }
+        .seat-map-container { gap: 12px; }
+        .seat-map-wrap { max-width: 160px; }
+        .seat-info-box { min-height: 140px; padding: 10px; font-size: 0.75rem; }
+        .seat-info-box .passenger-info-card p { font-size: 0.72rem; margin: 2px 0; }
+        .seat-info-box .passenger-info-card h6 { font-size: 0.8rem; margin-bottom: 6px; }
+        .seat-legend { gap: 6px; font-size: 0.62rem; margin-top: 6px; }
+
+        /* Selected seat highlight */
+        .seat-btn.selected {
+            outline: 2px solid var(--accent-light);
+            outline-offset: 1px;
+            transform: scale(1.1);
+            z-index: 5;
+        }
+
+        /* Route progress card */
+        .col-right .card:nth-of-type(1) { padding: 14px 16px; display: flex; flex-direction: column; }
+        .curr-stop-card { padding: 8px 12px; margin-bottom: 8px; border-radius: 10px; }
+        .curr-stop-card .label { font-size: 0.58rem; }
+        .curr-stop-card .stop-name { font-size: 0.9rem; margin-top: 1px; }
+        .next-stop-card { padding: 8px 12px; margin-bottom: 8px; border-radius: 10px; }
+        .next-stop-card .label { font-size: 0.58rem; }
+        .next-stop-card .stop-name { font-size: 0.9rem; margin-top: 1px; }
+
+        /* Scrollable route stop list - Flex to fill card height */
+        .route-track {
+            flex: 1;
+            min-height: 150px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124,109,255,0.3) transparent;
+            padding-right: 4px;
+            margin-bottom: 12px;
+        }
+        .stop-label { font-size: 0.76rem; }
+
+        /* Next Stop sub-info compact */
+        .next-stop-card > div:last-child { margin-top: 8px; padding-top: 8px; }
+        .next-stop-card > div:last-child > div > div { font-size: 0.9rem !important; }
+
+        /* Advance button compact */
+        .btn-next { padding: 9px; font-size: 0.85rem; margin-bottom: 8px !important; }
+
         /* === TOAST === */
         #toast-host {
             position: fixed; bottom: 24px; right: 24px; z-index: 9999;
@@ -576,7 +693,6 @@
             border-top: none;
             border-radius: 0 0 12px 12px;
             padding: 8px;
-            max-height: 200px; overflow-y: auto;
         }
         .overstay-item {
             background: rgba(255, 255, 255, 0.03);
@@ -645,41 +761,54 @@
 
     <!-- === LEFT === -->
     <div class="col-left">
-
         <!-- Driver Profile -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">👤</div>
-                <div class="card-title">Driver Profile</div>
-            </div>
-            <div class="avatar-ring">🧑‍✈️</div>
-            <div class="driver-name" id="driverNameCard">—</div>
-            <div class="driver-tag">Licensed Driver</div>
-
-            <div class="info-row">
-                <span class="info-key">License</span>
-                <span class="info-val" id="driverLicense">—</span>
-            </div>
-            <div class="info-row">
-                <span class="info-key">Phone</span>
-                <span class="info-val" id="driverPhone">—</span>
-            </div>
-            <div class="info-row">
-                <span class="info-key">Performance</span>
-                <span class="info-val" id="driverPerf" style="color:var(--green)">—</span>
+        <div class="card" id="card-profile" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-header" style="justify-content: space-between; border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="card-icon">👤</div>
+                    <div class="card-title">Driver Profile</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="showScheduleModal()" style="border-radius: 6px; padding: 4px 8px; font-size: 0.75rem;"><i class="icon">📅</i> Schedule</button>
             </div>
 
-            <div class="bus-chip">
-                <div class="bus-chip-label">Assigned Bus</div>
-                <div class="bus-chip-value" id="driverBusNumber">—</div>
-                <div class="bus-chip-sub" id="driverBusType">—</div>
-                <div class="bus-chip-sub" id="driverCapacity" style="margin-top:4px;"></div>
+            <!-- Avatar Row -->
+            <div style="display: flex; gap: 16px; align-items: center; margin: 16px 0;">
+                <div class="avatar-ring" style="margin: 0;">🧑‍✈️</div> 
+                <div>
+                    <div class="driver-name" id="driverNameCard" style="text-align: left;">Rajesh Kumar</div>
+                    <div class="driver-tag" style="margin: 4px 0 0 0; background: rgba(79,70,229,0.1); color: var(--primary);">Licensed Driver</div>
+                </div>
             </div>
 
-            <div class="bus-chip" style="margin-top:10px; background:var(--bg-card-2); border-color:var(--border-soft);">
-                <div class="bus-chip-label">Route</div>
-                <div class="bus-chip-value" id="driverRoute" style="color:var(--primary);font-size:0.82rem;">—</div>
-                <div class="bus-chip-sub"><span id="busStatusBadge" class="badge-pill badge-boarded">Active</span></div>
+            <!-- 3 Column Info Setup -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; gap: 8px;">
+                <div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">License</div>
+                    <div id="driverLicense" style="font-family: monospace; font-size: 0.8rem; font-weight: 600; margin-top: 4px;">TG-DL-001</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Phone</div>
+                    <div id="driverPhone" style="font-family: monospace; font-size: 0.8rem; font-weight: 600; margin-top: 4px;">9876543210</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Performance</div>
+                    <div id="driverPerf" style="font-size: 0.8rem; font-weight: 700; color: var(--green); margin-top: 4px;">95%</div>
+                </div>
+            </div>
+
+            <!-- Route and Bus Info -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: var(--bg-card-2); border-radius: 12px; padding: 16px; margin-top: auto;">
+                <div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Assigned Bus</div>
+                    <div id="driverBusNumber" style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 4px;">TS09AB1001</div>
+                    <div id="driverBusType" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px;">AC Sleeper</div>
+                    <div id="driverCapacity" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">32 seats</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Route</div>
+                    <div id="driverRoute" style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 4px;">Hyderabad &rarr; Tirupati</div>
+                    <div class="badge" id="busStatusBadge" style="background: rgba(79,70,229,0.1); color: var(--primary); font-size: 0.7rem; padding: 4px 8px; border-radius: 6px; margin-top: 8px; display: inline-block;">Active</div>
+                </div>
             </div>
 
             <button class="btn btn-outline-primary btn-sm w-100 mt-3" onclick="showScheduleModal()" style="border-radius: 10px; font-weight: 600;">
@@ -687,34 +816,83 @@
             </button>
         </div>
 
-        <!-- Seat Map -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">🗺️</div>
-                <div class="card-title">Live Seat Map</div>
-            </div>
-            <div class="seat-map-wrap">
-                <div id="seatLayout"></div>
-                <div class="seat-legend">
-                    <span><span class="legend-dot avail"></span>Free</span>
-                    <span><span class="legend-dot booked"></span>Booked</span>
-                    <span><span class="legend-dot boarded"></span>Boarded</span>
-                    <span><span class="legend-dot dropped"></span>Dropped</span>
-                    <span><span class="legend-dot dropping" style="background:#f59e0b; animation: anim-dropping-soon 1s infinite;"></span>🟡 Approaching Drop Stop</span>
-                    <span><span class="legend-dot blinking-red" style="background:#ef4444; animation: anim-overstay-red 0.7s infinite;"></span>⚠️ Overstay / Drop Now</span>
+        <div class="middle-row-group">
+            <!-- Seat Map -->
+            <div class="card" id="card-seat-map">
+                <div class="card-header">
+                    <div class="card-icon">🗺️</div>
+                    <div class="card-title">Live Seat Map</div>
+                </div>
+                <div class="seat-map-container">
+                    <!-- LEFT: Seat Grid -->
+                    <div class="seat-map-left">
+                        <div class="seat-map-wrap">
+                            <div id="seatLayout"></div>
+                        </div>
+                        <div class="seat-legend" style="max-width:180px; margin-top: 8px;">
+                            <span><span class="legend-dot avail"></span>Free</span>
+                            <span><span class="legend-dot booked"></span>Booked</span>
+                            <span><span class="legend-dot boarded"></span>Boarded</span>
+                            <span><span class="legend-dot dropped"></span>Dropped</span>
+                        </div>
+                    </div>
+                    <!-- RIGHT: Passenger Details -->
+                    <div class="seat-map-right">
+                        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Passenger Details</div>
+                        <div class="seat-info-box" id="seatInfoBox">
+                            <span style="font-size: 1.5rem;">💺</span>
+                            <span style="font-size:0.75rem; margin-top: 6px;">Click a seat to view passenger info.</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="seat-info-box" id="seatInfoBox" style="background:var(--bg-card-2); border-color:var(--border-soft);">
-                <span style="color:var(--text-muted);font-size:0.78rem;">Click a seat to view passenger info.</span>
+
+            <!-- Route Progress (Moved here for equal width symmetry) -->
+            <div class="card" id="card-route-progress">
+                <div class="card-header">
+                    <div class="card-icon">📍</div>
+                    <div class="card-title">Route Progress</div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">
+                    <span>Journey</span>
+                    <span id="stopProgress" style="color:var(--accent-light)">Stop 1 of 5</span>
+                </div>
+                <div class="progress-line mb-3">
+                    <div class="progress-line-fill" id="routeProgressBar" style="width:0%"></div>
+                </div>
+
+                <div class="curr-stop-card">
+                    <div class="label">Current Stop</div>
+                    <div class="stop-name" id="currentStop">—</div>
+                </div>
+                <div class="next-stop-card">
+                    <div class="label">Next Stop</div>
+                    <div class="stop-name" id="nextStop">Loading...</div>
+                    <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div style="background:rgba(245,158,11,0.05); border-left:3px solid #f59e0b; padding:8px; border-radius:4px;">
+                                <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Next Drops</div>
+                                <div id="droppingNext" style="font-weight:800; color:#b45309; font-size:1.1rem;">None</div>
+                            </div>
+                            <div style="background:rgba(220,38,38,0.05); border-left:3px solid #dc2626; padding:8px; border-radius:4px;">
+                                <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Overstays</div>
+                                <div id="overstayingNow" style="font-weight:800; color:#dc2626; font-size:1.1rem;">None</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="route-track mb-3" id="stopList"></div>
+                <button class="btn-next mb-2" id="nextBtn" onclick="nextStop()">➡ Advance to Next Stop</button>
+                <button class="btn-next" id="endTripBtn" onclick="showDestinationReport()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);">🏁 End Journey & Summary</button>
             </div>
         </div>
     </div>
 
     <!-- === CENTER === -->
     <div class="col-center">
-
         <!-- Stats -->
-        <div class="card">
+        <div class="card" id="card-dashboard">
             <div class="card-header">
                 <div class="card-icon">📊</div>
                 <div class="card-title">Live Dashboard</div>
@@ -756,22 +934,25 @@
         </div>
 
         <!-- Boarding -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">🎟</div>
-                <div class="card-title">Passenger Boarding</div>
-            </div>
-            <div class="input-group-driver mb-3">
-                <input type="text" id="ticketInput" placeholder="Enter Ticket ID — e.g. TKT-AB1234" />
-                <button class="btn-board" onclick="boardPassenger()">✅ Board</button>
+        <div class="card" id="card-boarding" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card-header" style="justify-content: flex-start; gap: 12px; margin-bottom: 0px; border-bottom: none; padding-bottom: 0px;">
+                <div class="card-icon" style="background: rgba(124,109,255,0.05); color: #333; font-size: 0.9rem; width: 26px; height: 26px;">🎟</div>
+                <div class="card-title" style="color: var(--primary); font-size: 0.85rem;">Boarding</div>
             </div>
             
-            <button id="scannerBtn" class="btn-next mb-2" onclick="startScanner()" style="background:var(--primary);">📱 QR Scanner</button>
+            <div style="margin-top: 14px;">
+                <div style="display: flex; gap: 10px; background: rgba(0,0,0,0.02); padding: 7px 10px; border-radius: 10px; border: 1px solid var(--border-soft); align-items: center;">
+                    <input type="text" id="ticketInput" placeholder="Ticket ID — TKT-AB1234" style="border: none; background: transparent; outline: none; flex: 1; font-size: 0.72rem; color: var(--text);" />
+                    <button class="btn btn-success" onclick="boardPassenger()" style="background: #10B981; border: none; padding: 5px 14px; border-radius: 7px; font-size: 0.72rem; font-weight: 600;"><i class="icon">✅</i> Board</button>
+                </div>
+            </div>
+            
+            <button id="scannerBtn" onclick="startScanner()" class="w-100" style="background: rgba(99, 102, 241, 1); color: white; border: none; padding: 10px; border-radius: 10px; margin-top: auto; font-weight: 600; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">📱 QR Scanner</button>
             <div id="qr-reader" style="width:100%; max-width:300px; margin:0 auto; overflow:hidden; border-radius:12px;"></div>
         </div>
 
         <!-- Passenger List -->
-        <div class="card">
+        <div class="card" id="card-manifest">
             <div class="card-header">
                 <div class="card-icon">👥</div>
                 <div class="card-title">Passenger Manifest</div>
@@ -803,54 +984,34 @@
     </div>
     <!-- === RIGHT === -->
     <div class="col-right">
-
-
-        <!-- Route Progress -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">📍</div>
-                <div class="card-title">Route Progress</div>
+        <div id="overstayContainer" class="card overstay-container mt-3">
+            <div class="overstay-header">
+                <span style="font-size: 1.1rem;">🚨</span> Overstay Alert
             </div>
-
-            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;">
-                <span>Journey</span>
-                <span id="stopProgress" style="color:var(--accent-light)">Stop 1 of 5</span>
-            </div>
-            <div class="progress-line mb-3">
-                <div class="progress-line-fill" id="routeProgressBar" style="width:0%"></div>
-            </div>
-
-            <div class="curr-stop-card">
-                <div class="label">Current Stop</div>
-                <div class="stop-name" id="currentStop">—</div>
-            </div>
-            <div class="next-stop-card">
-            <div class="label">Next Stop</div>
-            <div class="stop-name" id="nextStop">Loading...</div>
-            <div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.05);">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                    <div style="background:rgba(245,158,11,0.05); border-left:3px solid #f59e0b; padding:8px; border-radius:4px;">
-                        <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Next Drops</div>
-                        <div id="droppingNext" style="font-weight:800; color:#b45309; font-size:1.1rem;">None</div>
-                    </div>
-                    <div style="background:rgba(220,38,38,0.05); border-left:3px solid #dc2626; padding:8px; border-radius:4px;">
-                        <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Overstays</div>
-                        <div id="overstayingNow" style="font-weight:800; color:#dc2626; font-size:1.1rem;">None</div>
-                    </div>
-                </div>
+            <div id="overstayList" class="overstay-list">
             </div>
         </div>
+    </div>
+</div>
 
-            <div class="route-track mb-3" id="stopList"></div>
-
-            <button class="btn-next mb-2" id="nextBtn" onclick="nextStop()">➡ Advance to Next Stop</button>
-            <button class="btn-next" id="endTripBtn" onclick="showDestinationReport()" style="display: none; background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);">🏁 End Journey & Summary</button>
-            <div id="overstayContainer" class="card overstay-container mt-3">
-                <div class="overstay-header">
-                    <span style="font-size: 1.1rem;">🚨</span> Overstay Alert
+<!-- SCHEDULE MODAL -->
+<div class="modal fade" id="scheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-soft);">
+                <h5 class="modal-title" style="color: var(--primary); font-family: 'Outfit'; font-weight: 700;">📅 Today's Schedule</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3" style="font-size: 0.85rem; color: var(--text-muted);">
+                    Scheduled stops and estimated arrival times for <strong style="color: var(--text);" id="schedBusNum">Bus</strong>.
                 </div>
-                <div id="overstayList" class="overstay-list">
+                <div class="route-track" id="scheduleList" style="margin-top: 10px; max-height: 400px; overflow-y: auto;">
+                    <!-- Injected by JS -->
                 </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-soft);">
+                <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal" style="border-radius: 10px;">Close Schedule</button>
             </div>
         </div>
     </div>

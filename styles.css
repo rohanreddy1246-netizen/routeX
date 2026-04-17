@@ -29,8 +29,13 @@
 
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Premium animated mesh gradient background */
-    background: linear-gradient(135deg, #dbeafe 0%, #ede9fe 25%, #d1fae5 50%, #e0f2fe 75%, #dbeafe 100%);
+    /* Rich animated mesh gradient background */
+    background:
+        radial-gradient(ellipse 70% 60% at 10% 0%,   rgba(37, 99, 235, 0.28) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 55% at 90% 10%,  rgba(124, 58, 237, 0.20) 0%, transparent 65%),
+        radial-gradient(ellipse 70% 60% at 80% 90%,  rgba(16, 185, 129, 0.18) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 15% 85%,  rgba(59, 130, 246, 0.16) 0%, transparent 65%),
+        linear-gradient(135deg, #dbeafe 0%, #ede9fe 40%, #d1fae5 70%, #e0f2fe 100%);
     background-size: 400% 400%;
     animation: meshGradient 15s ease infinite;
     background-attachment: fixed;
@@ -85,7 +90,6 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
         background-size: 140px;
     }
 }
-
 
 .login-card, .booking-step-panel, .bus-card {
     position: relative;
@@ -1755,4 +1759,3 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
         font-size: 0.8rem;
     }
 }
-

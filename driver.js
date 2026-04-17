@@ -290,6 +290,10 @@ function showSeatInfo(btn) {
         p.seat === seatId && (!busNum || p.busNumber === busNum)
     );
 
+    // Highlight selected seat
+    document.querySelectorAll('.seat-btn.selected').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+
     const infoBox = document.getElementById('seatInfoBox');
     if (!infoBox) return;
 
